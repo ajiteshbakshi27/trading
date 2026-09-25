@@ -1,0 +1,52 @@
+# Render Blueprint for QuantPulse AI backend.
+# Apply via Render Dashboard → New → Blueprint → point at this repo.
+# Then set the env vars listed in backend/.env.example as "Environment Variables"
+# (mark SUPABASE_SERVICE_KEY / ALPACA_SECRET_KEY / REDDIT_CLIENT_SECRET secret).
+services:
+  - type: web
+    name: quantpulse-api
+    runtime: python
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    # Single worker: HFT simulator + OFI state live in process memory.
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1"
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: ALPACA_BASE_URL
+        value: https://paper-api.alpaca.markets
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: quantpulse-cache
+          property: connectionString
+    # Create once, then paste secrets in the dashboard (sync: false = manual):
+      - key: ALPACA_API_KEY
+        sync: false
+      - key: ALPACA_SECRET_KEY
+        sync: false
+      - key: FINANCIAL_DATA_API_KEY
+        sync: false
+      - key: REDDIT_CLIENT_ID
+        sync: false
+      - key: REDDIT_CLIENT_SECRET
+        sync: false
+      - key: TWITTER_BEARER_TOKEN
+        sync: false
+      - key: KALSHI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: CORS_ORIGINS
+        sync: false # set to https://<your-app>.vercel.app after Vercel deploy
+
+  - type: redis
+    name: quantpulse-cache
+    ipAllowList: [] # internal only

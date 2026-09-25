@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   QuantPulse AI — token layer (P051 discipline)
+   primitive → semantic → component. No raw hex in components.
+   ============================================================ */
+
+:root {
+  /* ---- primitives (raw palette, never used directly in UI) ---- */
+  --c-ink-950: #020617;
+  --c-ink-900: #0e1223;
+  --c-ink-850: #141a2e;
+  --c-ink-800: #1a1e2f;
+  --c-ink-700: #1e293b;
+  --c-ink-600: #334155;
+  --c-ink-400: #94a3b8;
+  --c-ink-200: #cbd5e1;
+  --c-ink-50:  #f8fafc;
+  --c-white:   #ffffff;
+  --c-emerald-500: #22c55e;
+  --c-emerald-400: #34d399;
+  --c-rose-500: #ef4444;
+  --c-rose-400: #fb7185;
+  --c-amber-400: #fbbf24;
+
+  /* ---- semantic channels (consumed by Tailwind with alpha support) ---- */
+  --s-bg: 2 6 23;
+  --s-fg: 248 250 252;
+  --s-surface: 14 18 35;
+  --s-surface-2: 20 26 46;
+  --s-surface-3: 26 30 47;
+  --s-muted: 148 163 184;
+  --s-accent: 34 197 94;
+  --s-accent-fg: 2 6 23;
+  --s-destructive: 239 68 68;
+  --s-border: 51 65 85;
+
+  /* ---- semantic colors (consumed by plain CSS) ---- */
+  --color-background: rgb(var(--s-bg));
+  --color-surface: rgb(var(--s-surface));
+  --color-surface-2: rgb(var(--s-surface-2));
+  --color-surface-3: rgb(var(--s-surface-3));
+  --color-foreground: rgb(var(--s-fg));
+  --color-muted-foreground: rgb(var(--s-muted));
+  --color-accent: rgb(var(--s-accent));
+  --color-on-accent: rgb(var(--s-accent-fg));
+  --color-destructive: rgb(var(--s-destructive));
+  --color-border: rgb(var(--s-border));
+  --color-hairline: rgb(var(--s-muted) / 0.14);
+  --color-ring: rgb(var(--s-accent));
+
+  /* ---- component ---- */
+  --hairline: 1px solid var(--color-hairline);
+  --card-bg: rgba(14, 18, 35, 0.72);
+  --card-border: var(--color-hairline);
+  --focus-ring: 0 0 0 2px var(--color-background), 0 0 0 4px var(--color-ring);
+
+  /* ---- spacing (density 4/10: standard) ---- */
+  --space-xs: 4px;  --space-sm: 8px;   --space-md: 16px;
+  --space-lg: 24px; --space-xl: 32px;  --space-2xl: 48px; --space-3xl: 64px;
+
+  /* ---- motion tokens (durations / easings) ---- */
+  --dur-fast: 150ms; --dur-base: 220ms; --dur-slow: 420ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-inout: cubic-bezier(0.76, 0, 0.24, 1);
+  --motion-reveal-y: 16px;
+
+  /* ---- elevation (OLED dark: borders over shadows) ---- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.45);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Legacy dashboard glass (app shell only — marketing stays solid). */
+.glass {
+  background: rgba(148, 163, 184, 0.05);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(148, 163, 184, 0.12);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+}
+
+.space-bg {
+  background:
+    radial-gradient(600px 400px at 15% -5%, rgba(6, 182, 212, 0.14), transparent 60%),
+    radial-gradient(700px 500px at 85% 10%, rgba(124, 58, 237, 0.16), transparent 60%),
+    radial-gradient(500px 500px at 50% 110%, rgba(16, 185, 129, 0.08), transparent 60%),
+    var(--color-background);
+}
+
+.neon-green { color: var(--c-emerald-400); text-shadow: 0 0 12px rgba(16, 185, 129, 0.6); }
+.neon-red { color: var(--c-rose-400); text-shadow: 0 0 12px rgba(244, 63, 94, 0.6); }
+
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.25); border-radius: 8px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.4); }
+::selection { background: rgba(16, 185, 129, 0.3); }
+.tnum { font-variant-numeric: tabular-nums; }
+
+.section-label {
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--color-muted-foreground);
+}
+
+/* Visible focus everywhere (a11y gate). */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-radius: 8px;
+}
+
+/* Marketing primitives: solid surfaces, hairline borders — no glass. */
+.mk-card {
+  background: var(--card-bg);
+  border: var(--card-border);
+  border-radius: 16px;
+}
+.mk-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 44px; padding: 0 20px; border-radius: 10px;
+  font-weight: 600; font-size: 14px; cursor: pointer;
+  transition: opacity var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out),
+              background-color var(--dur-base) var(--ease-out);
+}
+.mk-btn:hover { transform: translateY(-1px); opacity: 0.94; }
+.mk-btn:active { transform: translateY(0); }
+.mk-btn-primary { background: var(--color-accent); color: var(--color-on-accent); }
+.mk-btn-ghost { background: transparent; color: var(--color-foreground); border: 1px solid var(--color-hairline); }
+.mk-btn-ghost:hover { background: rgba(148, 163, 184, 0.08); }
+
+/* GSAP word/line masks (reverted on cleanup; readable text stays in the DOM). */
+.mk-split-line { display: block; overflow: hidden; padding-bottom: 0.12em; margin-bottom: -0.12em; }
+.mk-split-mask { display: inline-block; overflow: hidden; vertical-align: bottom; padding-bottom: 0.14em; margin-bottom: -0.14em; }
+.mk-split-inner { display: inline-block; will-change: transform; }
+
+/* Reduced motion: constitution gate — final states only. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .mk-split-inner { transform: none !important; opacity: 1 !important; }
+}
