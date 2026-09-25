@@ -7,7 +7,9 @@ export function wsUrl(): string {
 /** fetch + JSON with timeout; throws Error with the backend's detail message. */
 export async function api<T = any>(path: string, init?: RequestInit): Promise<T> {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 15000);
+  // /api/snapshot is the heaviest call (QAOA + quote refresh); 30s gives it
+  // headroom without letting a stalled backend hang the UI forever.
+  const timer = setTimeout(() => ctrl.abort(), 30000);
   try {
     const r = await fetch(`${API}${path}`, { signal: ctrl.signal, ...init });
     let j: any = null;

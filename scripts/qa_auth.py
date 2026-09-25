@@ -22,6 +22,13 @@ r: dict = {}
 TIMEOUT = 90_000  # dev-mode route compiles can be slow on first hit
 
 
+
+def ready(page, timeout=60000):
+    """Wait until React has hydrated (deterministic; no sleep races)."""
+    try:
+        page.wait_for_selector("html[data-hydrated='1']", timeout=timeout)
+    except Exception:
+        pass
 def labelled(page):
     return page.evaluate(
         """() => {
@@ -42,6 +49,13 @@ def labelled(page):
     )
 
 
+
+def ready(page, timeout=60000):
+    """Wait until React has hydrated (deterministic; no sleep races)."""
+    try:
+        page.wait_for_selector("html[data-hydrated='1']", timeout=timeout)
+    except Exception:
+        pass
 with sync_playwright() as pw:
     b = pw.chromium.launch()
     b.contexts  # noqa
@@ -54,6 +68,7 @@ with sync_playwright() as pw:
     ctx = b.new_context(viewport={"width": 1440, "height": 900})
     page = ctx.new_page()
     page.goto(f"{BASE}/login", wait_until="domcontentloaded")
+    ready(page)
     page.wait_for_timeout(500)
     page.screenshot(path=str(OUT / "auth-login.png"))
     r["login_labels"] = labelled(page)
@@ -117,6 +132,7 @@ with sync_playwright() as pw:
     s = b.new_context(viewport={"width": 1440, "height": 900})
     sp = s.new_page()
     sp.goto(f"{BASE}/signup", wait_until="domcontentloaded")
+    ready(sp)
     sp.wait_for_timeout(400)
     r["signup_labels"] = labelled(sp)
     sp.click("button[type=submit]")
@@ -137,7 +153,11 @@ with sync_playwright() as pw:
     sp.wait_for_timeout(600)
     r["after_signup_url"] = sp.url
     sp.goto(f"{BASE}/", wait_until="domcontentloaded")
-    sp.wait_for_timeout(700)
+    # Wait for hydration to attach the session UI: a fixed sleep races dev compiles.
+    try:
+        sp.wait_for_selector("text=Sign out", timeout=30000)
+    except Exception:
+        pass
     sp.screenshot(path=str(OUT / "auth-header-session.png"))
     r["header_signedin_state"] = sp.evaluate(
         """() => {
@@ -174,9 +194,13 @@ with sync_playwright() as pw:
     f = b.new_context(viewport={"width": 1440, "height": 900})
     fp = f.new_page()
     fp.goto(f"{BASE}/forgot-password", wait_until="domcontentloaded")
+    ready(fp)
     fp.fill("#email", "trader@quantpulse.ai")
     fp.click("button[type=submit]")
-    fp.wait_for_timeout(1400)
+    try:
+        fp.wait_for_selector("text=Check your email", timeout=20000)
+    except Exception:
+        pass
     r["forgot_success_visible"] = "Check your email" in fp.inner_text("body")
     fp.screenshot(path=str(OUT / "auth-forgot-sent.png"))
     f.close()
@@ -185,6 +209,7 @@ with sync_playwright() as pw:
     m = b.new_context(viewport={"width": 360, "height": 780}, is_mobile=True, has_touch=True)
     mp = m.new_page()
     mp.goto(f"{BASE}/login", wait_until="domcontentloaded")
+    ready(mp)
     mp.wait_for_timeout(600)
     mp.screenshot(path=str(OUT / "auth-login-360.png"))
     r["login_mobile_hscroll"] = mp.evaluate(

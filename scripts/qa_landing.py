@@ -64,6 +64,13 @@ METRICS_PROBE = """
 results: dict = {}
 
 
+
+def ready(page, timeout=60000):
+    """Wait until React has hydrated (deterministic; no sleep races)."""
+    try:
+        page.wait_for_selector("html[data-hydrated='1']", timeout=timeout)
+    except Exception:
+        pass
 def run(pw) -> None:
     browser = pw.chromium.launch()
     # generous timeouts: `next dev` compiles routes on demand
@@ -75,6 +82,7 @@ def run(pw) -> None:
     ctx.set_default_navigation_timeout(TIMEOUT)
     page = ctx.new_page()
     page.goto(BASE, wait_until="domcontentloaded")
+    ready(page)
     page.wait_for_timeout(1200)
     page.screenshot(path=str(OUT / "landing-1440.png"))
     page.screenshot(path=str(OUT / "landing-1440-full.png"), full_page=True)
@@ -92,6 +100,7 @@ def run(pw) -> None:
 
     # ---------- 2. Animation audit + vitals (fresh load, mid-animation) ----------
     page.goto(BASE, wait_until="domcontentloaded")
+    ready(page)
     page.wait_for_timeout(1500)
     page.evaluate("window.scrollTo(0, 600)")
     page.wait_for_timeout(300)
@@ -136,6 +145,7 @@ def run(pw) -> None:
     results["gsap_layer_motion"] = moved
 
     page.goto(BASE, wait_until="load")
+    ready(page)
     results["vitals"] = page.evaluate(METRICS_PROBE)
 
     # ---------- 3. Keyboard focus visibility ----------
@@ -207,6 +217,13 @@ def run(pw) -> None:
     browser.close()
 
 
+
+def ready(page, timeout=60000):
+    """Wait until React has hydrated (deterministic; no sleep races)."""
+    try:
+        page.wait_for_selector("html[data-hydrated='1']", timeout=timeout)
+    except Exception:
+        pass
 with sync_playwright() as pw:
     run(pw)
 

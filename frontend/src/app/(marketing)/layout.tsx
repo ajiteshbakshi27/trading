@@ -1,4 +1,5 @@
 import SmoothScroll from "@/components/marketing/SmoothScroll";
+import HydrationFlag from "@/components/HydrationFlag";
 
 export const metadata = {
   title: "QuantPulse AI — trade the signal, not the crowd",
@@ -9,7 +10,10 @@ export const metadata = {
 export default function MarketingLayout({ children }: { children: React.ReactNode }) {
   return (
     <SmoothScroll>
-      <div className="relative min-h-screen overflow-x-clip bg-bg text-fg">{children}</div>
+      <div className="relative min-h-screen overflow-x-clip bg-bg text-fg">
+        <HydrationFlag />
+        {children}
+      </div>
     </SmoothScroll>
   );
 }

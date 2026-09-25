@@ -12,6 +12,11 @@ from typing import Optional, Dict, List, Any
 import httpx
 
 BASE_URL = "https://www.alphavantage.co/query"
+# When Alpha Vantage throttles us (free tier is 25/day), stop asking for a
+# while. Without this the app keeps paying pacing + latency on every tick
+# for calls that can only fail.
+THROTTLE_COOLDOWN_S = 900        # 15 min on a transient throttle
+THROTTLE_LONG_COOLDOWN_S = 6 * 3600  # after repeated throttles (daily cap)
 
 
 class RateLimited(Exception):
@@ -29,6 +34,8 @@ class AlphaVantageClient:
         self._day = self._today()
         self._used = 0
         self._last_call_ts = 0.0
+        self._blocked_until = 0.0
+        self._throttle_count = 0
 
     @staticmethod
     def _today() -> str:
@@ -38,13 +45,18 @@ class AlphaVantageClient:
         if self._day != self._today():
             self._day, self._used = self._today(), 0
         return {"used_today": self._used, "daily_budget": self.max_daily,
-                "cached_keys": len(self._cache)}
+                "cached_keys": len(self._cache),
+                "throttled_for_s": max(0, round(self._blocked_until - time.time()))}
 
     def _get(self, params: Dict[str, str]) -> Dict[str, Any] | None:
         if not self.api_key:
             return None
-        key = "&".join(f"{k}={v}" for k, v in sorted(params.items()))
+        key = self._cache_key(params)
         now = time.time()
+        hit = self._cache.get(key)
+        # Circuit open: serve stale (or nothing) without touching the network.
+        if now < self._blocked_until:
+            return hit[1] if hit else None
         hit = self._cache.get(key)
         if hit and now - hit[0] < self.ttl:
             return hit[1]
@@ -58,7 +70,7 @@ class AlphaVantageClient:
             time.sleep(self.min_gap_s - gap)
         try:
             r = httpx.get(BASE_URL, params={**params, "apikey": self.api_key},
-                          timeout=5.0)
+                          timeout=3.0)
             self._last_call_ts = time.time()
             if r.status_code != 200:
                 return hit[1] if hit else None
@@ -66,8 +78,14 @@ class AlphaVantageClient:
         except Exception:
             return hit[1] if hit else None
         if "Note" in data or "Information" in data:
-            # Rate-limited / key issue: serve stale cache, never raise here.
+            # Throttled (free tier = 25/day): open the circuit so we stop
+            # paying pacing + latency on calls that can only fail.
+            self._throttle_count += 1
+            cooldown = (THROTTLE_COOLDOWN_S if self._throttle_count < 3
+                        else THROTTLE_LONG_COOLDOWN_S)
+            self._blocked_until = time.time() + cooldown
             return hit[1] if hit else None
+        self._throttle_count = 0
         self._used += 1
         self._cache[key] = (now, data)
         return data
@@ -93,19 +111,40 @@ class AlphaVantageClient:
                 "change_pct": round(change_pct, 2), "source": "alphavantage",
                 "trading_day": q.get("07. latest trading day", "")}
 
+    def _cache_key(self, params: Dict[str, str]) -> str:
+        return "&".join(f"{k}={v}" for k, v in sorted(params.items()))
+
+    def _is_fresh(self, key: str) -> bool:
+        hit = self._cache.get(key)
+        return bool(hit and time.time() - hit[0] < self.ttl)
+
     def quotes(self, symbols: List[str],
                limit: int | None = None) -> Dict[str, Dict[str, Any]]:
-        """Quotes for symbols. `limit` caps how many *cache misses* are
-        fetched in one pass so a cold snapshot never blocks the request."""
+        """Quotes for symbols.
+
+        `limit` caps how many *cache misses* may hit the network in one
+        pass. The budget is checked BEFORE fetching — checking afterwards
+        lets every symbol block, which is what stalled /api/snapshot.
+        """
         out: Dict[str, Dict[str, Any]] = {}
         misses = 0
-        for s in symbols:
-            q = self.quote(s)
+        for raw in symbols:
+            sym = raw.upper()
+            key = self._cache_key({"function": "GLOBAL_QUOTE", "symbol": sym})
+            fresh = self._is_fresh(key)
+            if not fresh and limit is not None and misses >= limit:
+                continue  # budget spent this tick; caller keeps simulator mid
+            q = self.quote(sym)
             if q:
-                out[s.upper()] = q
-            elif limit is None or misses < limit:
+                out[sym] = q
+            elif not fresh:
                 misses += 1
         return out
+
+    def warm(self, symbols: List[str]) -> Dict[str, int]:
+        """Prime the cache in the background so the first request is fast."""
+        got = self.quotes(symbols, limit=len(symbols))
+        return {"warmed": len(got), "usage": self.usage()["used_today"]}
 
     def intraday(self, symbol: str,
                  interval: str = "60min") -> List[Dict[str, Any]] | None:

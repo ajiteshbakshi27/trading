@@ -54,8 +54,24 @@ stream_client = StreamClient(settings.alpaca_key or "",
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     stream_client.start(list(BASE_PRICES))
-    yield
-    await stream_client.stop()
+    # Prime the market-data cache off the event loop so no request pays the
+    # cold-start cost (Alpha Vantage is paced at ~1 req/s).
+    warm_task = asyncio.create_task(_warm_market_data())
+    try:
+        yield
+    finally:
+        warm_task.cancel()
+        await stream_client.stop()
+
+
+async def _warm_market_data() -> None:
+    try:
+        client = _av()
+        if client is None:
+            return
+        await asyncio.to_thread(client.warm, list(BASE_PRICES))
+    except Exception:
+        pass  # cache stays cold; the per-tick cap still bounds latency
 
 
 app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION,

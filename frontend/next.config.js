@@ -1,6 +1,11 @@
 /** @type {import('next').NextConfig} */
 const isProd = process.env.NODE_ENV === "production";
 
+const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+// The live tape runs over a WebSocket, which is a *different* origin scheme
+// for CSP purposes: http://host:8000 must also allow ws://host:8000.
+const wsUrl = apiUrl.replace(/^http/, "ws");
+
 const csp = [
   "default-src 'self'",
   // Next injects inline bootstrap scripts; allow them without unsafe-eval.
@@ -8,8 +13,8 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
-  // Backend is cross-origin (Render) for fetch + websocket.
-  "connect-src 'self' " + (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"),
+  // Backend is cross-origin (Render) for both fetch and the tick stream.
+  `connect-src 'self' ${apiUrl} ${wsUrl}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",
