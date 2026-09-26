@@ -45,9 +45,9 @@ from app import market_data as md
 from app.streaming import StreamClient
 from app import copilot
 from app import database as db
-from app.api import (demo, event_transmission, experiments, information,
-                     paper, prediction_autopsy, research, research_backtest,
-                     thesis)
+from app.api import (demo, divergence, event_transmission, experiments,
+                     information, news, paper, prediction_autopsy, research,
+                     research_backtest, thesis)
 from app.api.context import ResearchContext
 from app.services.fusion import FUSION_PRIORS, MODEL_VERSION as FUSION_VERSION
 settings = get_settings()
@@ -96,6 +96,8 @@ app.include_router(research.router)
 app.include_router(research.asset_router)
 app.include_router(research_backtest.router)
 app.include_router(paper.router)
+app.include_router(divergence.router)
+app.include_router(news.router)
 
 # Phase 2: create tables (Postgres when DATABASE_URL works, else SQLite).
 # Never blocks startup: failures degrade to in-memory-safe fallbacks.
