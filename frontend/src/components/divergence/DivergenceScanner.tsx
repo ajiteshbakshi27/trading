@@ -14,8 +14,17 @@ export type DivergenceRow = {
   squeeze_metric: number;
   squeeze_label: string;
   retail: { mentions: number; reddit_bullish: number; data_mode: string };
-  market: { price: number; change_pct: number; market_bullish: number; data_mode: string };
+  market: {
+    price: number;
+    change_pct: number;
+    market_bullish: number;
+    data_mode: string;
+    currency: string;
+    exchange: string;
+  };
   faction: string;
+  currency: string;
+  exchange: string;
 };
 
 const STANCE_STYLES: Record<string, string> = {
@@ -23,6 +32,17 @@ const STANCE_STYLES: Record<string, string> = {
   "SMART MONEY DIVERGENCE": "bg-blue-500/15 text-blue-300",
   "ALIGNED": "bg-slate-500/15 text-slate-300",
 };
+
+export function formatPrice(price: number, currency: string): string {
+  if (!price || price <= 0) return "—";
+  const symbol = currency === "INR" ? "₹" : "$";
+  return `${symbol}${price.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+export function formatPct(value: number): string {
+  if (!value || value === 0) return "—";
+  return `${value > 0 ? "+" : ""}${value.toFixed(2)}%`;
+}
 
 export default function DivergenceScanner({
   rows,
@@ -38,18 +58,21 @@ export default function DivergenceScanner({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[720px] text-xs">
+      <table className="w-full min-w-[760px] text-xs">
         <thead>
           <tr className="border-b border-slate-700/60 text-left text-[10px] uppercase tracking-wider text-slate-500">
             <th className="px-3 py-2">Symbol</th>
+            <th className="px-3 py-2">Exchange</th>
             <th className="px-3 py-2 text-right">
               <button onClick={() => setSortDesc(!sortDesc)} className="hover:text-slate-300">
                 Divergence {sortDesc ? "↓" : "↑"}
               </button>
             </th>
             <th className="px-3 py-2">Stance</th>
-            <th className="px-3 py-2 text-right">Reddit Bullish</th>
-            <th className="px-3 py-2 text-right">Market Bullish</th>
+            <th className="px-3 py-2 text-right">Price</th>
+            <th className="px-3 py-2 text-right">Change</th>
+            <th className="px-3 py-2 text-right">Reddit Bull</th>
+            <th className="px-3 py-2 text-right">Market Bull</th>
             <th className="px-3 py-2 text-right">Mentions</th>
             <th className="px-3 py-2 text-right">Squeeze</th>
           </tr>
@@ -63,18 +86,59 @@ export default function DivergenceScanner({
             >
               <td className="px-3 py-2">
                 <span className="font-semibold text-slate-100">{r.symbol}</span>
-                <span className="ml-2 text-[10px] text-slate-500">
+                <span className="ml-1 text-[10px] text-slate-500">
                   {r.faction === "retail" ? "🦍" : "🏛️"}
                 </span>
               </td>
+              <td className="px-3 py-2">
+                <span
+                  className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                    r.exchange === "NSE"
+                      ? "bg-emerald-500/15 text-emerald-300"
+                      : "bg-blue-500/15 text-blue-300"
+                  }`}
+                >
+                  {r.exchange}
+                </span>
+              </td>
               <td className="px-3 py-2 text-right">
-                <span className={`font-bold tabular-nums ${r.divergence_score > 50 ? "text-rose-300" : r.divergence_score > 25 ? "text-amber-300" : "text-slate-300"}`}>
+                <span
+                  className={`font-bold tabular-nums ${
+                    r.divergence_score > 50
+                      ? "text-rose-300"
+                      : r.divergence_score > 25
+                        ? "text-amber-300"
+                        : "text-slate-300"
+                  }`}
+                >
                   {r.divergence_score.toFixed(0)}
                 </span>
               </td>
               <td className="px-3 py-2">
-                <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${STANCE_STYLES[r.stance] ?? STANCE_STYLES.ALIGNED}`}>
+                <span
+                  className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                    STANCE_STYLES[r.stance] ?? STANCE_STYLES.ALIGNED
+                  }`}
+                >
                   {r.stance}
+                </span>
+              </td>
+              <td className="px-3 py-2 text-right">
+                <span className="font-semibold tabular-nums text-slate-200">
+                  {formatPrice(r.market.price, r.market.currency)}
+                </span>
+              </td>
+              <td className="px-3 py-2 text-right">
+                <span
+                  className={`font-semibold tabular-nums ${
+                    r.market.change_pct > 0
+                      ? "text-emerald-400"
+                      : r.market.change_pct < 0
+                        ? "text-rose-400"
+                        : "text-slate-400"
+                  }`}
+                >
+                  {formatPct(r.market.change_pct)}
                 </span>
               </td>
               <td className="px-3 py-2 text-right">
@@ -83,7 +147,11 @@ export default function DivergenceScanner({
                 </span>
               </td>
               <td className="px-3 py-2 text-right">
-                <span className={`font-semibold tabular-nums ${r.market.market_bullish >= 50 ? "text-blue-300" : "text-slate-400"}`}>
+                <span
+                  className={`font-semibold tabular-nums ${
+                    r.market.market_bullish >= 50 ? "text-blue-300" : "text-slate-400"
+                  }`}
+                >
                   {r.market.market_bullish.toFixed(0)}%
                 </span>
               </td>
@@ -91,7 +159,15 @@ export default function DivergenceScanner({
                 {r.retail.mentions}
               </td>
               <td className="px-3 py-2 text-right">
-                <span className={`tabular-nums ${r.squeeze_metric > 0.6 ? "text-rose-300" : r.squeeze_metric > 0.35 ? "text-amber-300" : "text-slate-400"}`}>
+                <span
+                  className={`tabular-nums ${
+                    r.squeeze_metric > 0.6
+                      ? "text-rose-300"
+                      : r.squeeze_metric > 0.35
+                        ? "text-amber-300"
+                        : "text-slate-400"
+                  }`}
+                >
                   {r.squeeze_metric.toFixed(2)}
                 </span>
               </td>

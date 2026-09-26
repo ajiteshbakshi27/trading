@@ -19,6 +19,8 @@ import { api } from "@/lib/api";
 type DivergenceResponse = { results: DivergenceRow[] };
 type NewsResponse = { items: NewsItem[] };
 
+type MarketFilter = "all" | "NASDAQ" | "NSE";
+
 export default function Dashboard() {
   const [divergence, setDivergence] = useState<DivergenceRow[]>([]);
   const [news, setNews] = useState<NewsItem[]>([]);
@@ -27,6 +29,12 @@ export default function Dashboard() {
   const [hypeData, setHypeData] = useState<Array<{ time: number; mentions: number }>>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [marketFilter, setMarketFilter] = useState<MarketFilter>("all");
+
+  const filteredDivergence =
+    marketFilter === "all"
+      ? divergence
+      : divergence.filter((d) => d.exchange === marketFilter);
 
   const loadDivergence = useCallback(async () => {
     try {
@@ -76,9 +84,9 @@ export default function Dashboard() {
     loadPrice(selected);
   }, [selected, loadPrice]);
 
-  const selectedRow = divergence.find((d) => d.symbol === selected) ?? null;
-  const retailRows = divergence.filter((d) => d.faction === "retail");
-  const instRows = divergence.filter((d) => d.faction === "institutional");
+  const selectedRow = filteredDivergence.find((d) => d.symbol === selected) ?? null;
+  const retailRows = filteredDivergence.filter((d) => d.faction === "retail");
+  const instRows = filteredDivergence.filter((d) => d.faction === "institutional");
 
   return (
     <div className="space-y-6">
@@ -94,6 +102,25 @@ export default function Dashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex rounded-lg border border-slate-700/60 bg-white/[0.03] p-0.5">
+            {(["all", "NASDAQ", "NSE"] as MarketFilter[]).map((f) => (
+              <button
+                key={f}
+                onClick={() => setMarketFilter(f)}
+                className={`rounded-md px-3 py-1.5 text-[10px] font-semibold transition-colors ${
+                  marketFilter === f
+                    ? f === "NSE"
+                      ? "bg-orange-500 text-black"
+                      : f === "NASDAQ"
+                        ? "bg-blue-500 text-white"
+                        : "bg-slate-600 text-white"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                {f === "all" ? "All Markets" : f === "NASDAQ" ? "NASDAQ" : "NSE/BSE"}
+              </button>
+            ))}
+          </div>
           <button
             onClick={() => { loadDivergence(); loadNews(); }}
             className="flex items-center gap-1.5 rounded-full bg-white/5 px-4 py-2 text-xs font-medium text-slate-300 ring-1 ring-white/10 hover:bg-white/10"
@@ -238,7 +265,7 @@ export default function Dashboard() {
             </span>
           </div>
         </div>
-        <DivergenceScanner rows={divergence} onSelect={setSelected} />
+        <DivergenceScanner rows={filteredDivergence} onSelect={setSelected} />
       </section>
 
       {/* Hype vs Price + News Catalyst */}

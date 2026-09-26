@@ -9,7 +9,6 @@ import { clearSession } from "@/lib/auth";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/hft-orderbook", label: "HFT Book" },
   { href: "/prediction-bets", label: "Prediction Bets" },
   { href: "/allocator", label: "Allocator" },
   { href: "/portfolio", label: "Portfolio" },
