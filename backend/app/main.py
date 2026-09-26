@@ -16,7 +16,11 @@ from pydantic import BaseModel
 
 # Rate-limit budget for expensive/state-changing endpoints (per IP).
 _RATE_LIMITED = {"/api/allocate", "/api/trade", "/api/kill-switch",
-                 "/api/copilot", "/api/portfolio", "/api/portfolio/save"}
+                 "/api/copilot", "/api/portfolio", "/api/portfolio/save",
+                 # Research loop: state-changing writes
+                 "/api/thesis/create", "/api/thesis", "/api/predictions",
+                 "/api/experiments", "/api/demo/run", "/api/research/cycle",
+                 "/api/information/events/detect"}
 _RATE_WINDOW_S = 60
 _RATE_MAX = 20
 _BUCKETS: Dict[str, List[float]] = {}
@@ -41,7 +45,11 @@ from app import market_data as md
 from app.streaming import StreamClient
 from app import copilot
 from app import database as db
-
+from app.api import (demo, event_transmission, experiments, information,
+                     paper, prediction_autopsy, research, research_backtest,
+                     thesis)
+from app.api.context import ResearchContext
+from app.services.fusion import FUSION_PRIORS, MODEL_VERSION as FUSION_VERSION
 settings = get_settings()
 
 # Real-time Alpaca stream (idle until ALPACA_API_KEY+SECRET are set).
@@ -77,10 +85,26 @@ async def _warm_market_data() -> None:
 app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION,
               lifespan=lifespan)
 
+# Research routers: included additively; no existing route is replaced.
+app.include_router(information.router)
+app.include_router(thesis.router)
+app.include_router(event_transmission.router)
+app.include_router(prediction_autopsy.router)
+app.include_router(experiments.router)
+app.include_router(demo.router)
+app.include_router(research.router)
+app.include_router(research.asset_router)
+app.include_router(research_backtest.router)
+app.include_router(paper.router)
+
 # Phase 2: create tables (Postgres when DATABASE_URL works, else SQLite).
 # Never blocks startup: failures degrade to in-memory-safe fallbacks.
 try:
     db.init_db()
+    db.register_model_version(FUSION_VERSION,
+                              "Shared research fusion function: one fuse() for "
+                              "signals, stress tests and tournament ablations.",
+                              {k.value: v for k, v in FUSION_PRIORS.items()})
 except Exception:
     pass
 
@@ -145,6 +169,13 @@ pred_agent = PredictionAgent()
 bet_engine = BettingEngine()
 alpaca = AlpacaClient(settings.alpaca_key, settings.alpaca_secret,
                       settings.ALPACA_BASE_URL)
+
+# Singletons the research routers read, resolved once at startup.
+app.state.research = ResearchContext(
+    hft=hft, sent_engine=sent_engine, pred_agent=pred_agent,
+    bet_engine=bet_engine, stream_client=stream_client,
+    base_prices=dict(BASE_PRICES),
+)
 
 
 def _fresh_settings():
@@ -259,6 +290,19 @@ def health():
         "halted": risk_manager.is_halted(),
         "db": db.engine_info().get("backend"),
         "feeds": _feed_status(),
+    }
+
+
+@app.get("/")
+def root():
+    """API root — points to docs and health. The frontend is a separate app."""
+    return {
+        "app": settings.APP_NAME,
+        "version": settings.APP_VERSION,
+        "docs": "/docs",
+        "health": "/health",
+        "snapshot": "/api/snapshot",
+        "note": "This is the API backend. The frontend is deployed separately (Vercel).",
     }
 
 

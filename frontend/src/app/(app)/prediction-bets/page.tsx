@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
+import SectionCard from "@/components/research/SectionCard";
 
 // Phase 3: vibrant-red edge styling. |edge| >= HOT_EDGE gets solid
 // high-contrast red; smaller edges get red glow outline.
@@ -8,6 +9,48 @@ const HOT_EDGE = 0.12;
 
 function isHot(e: any) {
   return Math.abs(e.edge ?? 0) >= HOT_EDGE || (e.confidence ?? 0) >= 0.8;
+}
+
+function EventTransmissionEmbed() {
+  const [events, setEvents] = useState<any[]>([]);
+  const [graph, setGraph] = useState<any>(null);
+  useEffect(() => {
+    api<any>("/api/events?limit=5")
+      .then((res) => {
+        setEvents(res.events ?? []);
+        const first = res.events?.[0];
+        if (first) {
+          api<any>(`/api/events/${first.event_id}/assets`)
+            .then((g) => setGraph(g))
+            .catch(() => setGraph(null));
+        }
+      })
+      .catch(() => setEvents([]));
+  }, []);
+  if (!graph) return null;
+  return (
+    <SectionCard
+      title="Event → asset transmission"
+      subtitle="How an event maps to themes and potentially affected assets"
+    >
+      <div className="space-y-2 text-xs">
+        {graph.exposures?.slice(0, 5).map((e: any) => (
+          <div key={e.symbol} className="flex items-center justify-between rounded-lg bg-white/[0.03] px-3 py-2">
+            <span className="font-semibold text-slate-200">{e.symbol}</span>
+            <span className="text-slate-500">{e.relation}</span>
+            <span className="tabular-nums text-slate-400">
+              {e.median_response_pct != null
+                ? `${e.median_response_pct > 0 ? "+" : ""}${e.median_response_pct.toFixed(2)}%`
+                : "insufficient data"}
+            </span>
+          </div>
+        ))}
+      </div>
+      <p className="mt-2 text-[10px] text-slate-600">
+        Relationships are observed co-occurrence, not causation.
+      </p>
+    </SectionCard>
+  );
 }
 
 export default function PredictionPage() {
@@ -88,6 +131,8 @@ export default function PredictionPage() {
           {data && !(data?.prediction?.edges||[]).length && <p className="text-sm text-slate-500">No edges above threshold.</p>}
         </div>
       </div>
+
+      <EventTransmissionEmbed />
 
       <div className="glass rounded-2xl p-4">
         <h2 className="mb-2 font-semibold">All Markets</h2>

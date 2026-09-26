@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QuantPulse AI — Architecture</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #020617;
+    color: #f8fafc;
+    font-family: 'Inter', system-ui, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 40px;
+  }
+  .diagram { width: 1200px; height: 800px; position: relative; }
+  .title { text-align: center; font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+  .subtitle { text-align: center; font-size: 14px; color: #94a3b8; margin-bottom: 40px; }
+  .loop { display: flex; align-items: center; justify-content: center; gap: 0; margin-bottom: 40px; }
+  .stage { background: #0e1223; border: 1px solid #334155; border-radius: 12px; padding: 16px 20px; text-align: center; min-width: 110px; }
+  .stage .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px; }
+  .stage .desc { font-size: 10px; color: #94a3b8; }
+  .arrow { width: 36px; height: 2px; background: #334155; position: relative; flex-shrink: 0; }
+  .arrow::after { content: ''; position: absolute; right: 0; top: -4px; border-left: 8px solid #334155; border-top: 5px solid transparent; border-bottom: 5px solid transparent; }
+  .fusion-box { background: linear-gradient(135deg, #064e3b, #065f46); border: 2px solid #10b981; border-radius: 16px; padding: 24px 32px; text-align: center; margin: 0 auto 40px; max-width: 520px; }
+  .fusion-box .title { font-size: 18px; font-weight: 700; color: #6ee7b7; margin-bottom: 8px; }
+  .fusion-box .desc { font-size: 12px; color: #a7f3d0; line-height: 1.6; }
+  .feeds { display: flex; justify-content: center; gap: 16px; flex-wrap: wrap; margin-bottom: 40px; }
+  .feed { background: #1e293b; border: 1px solid #475569; border-radius: 8px; padding: 10px 16px; font-size: 11px; color: #cbd5e1; }
+  .feed .status { font-size: 9px; padding: 2px 6px; border-radius: 4px; margin-left: 6px; }
+  .status-live { background: #064e3b; color: #6ee7b7; }
+  .status-mock { background: #1e293b; color: #94a3b8; }
+  .layers { display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; }
+  .layer { padding: 8px 14px; border-radius: 8px; font-size: 11px; font-weight: 600; }
+  .layer-event { background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+  .layer-news { background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+  .layer-prediction { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+  .layer-reddit { background: rgba(192,132,252,0.15); color: #c084fc; border: 1px solid rgba(192,132,252,0.3); }
+  .layer-x { background: rgba(192,132,252,0.15); color: #c084fc; border: 1px solid rgba(192,132,252,0.3); }
+  .layer-flow { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+  .layer-price { background: rgba(148,163,184,0.15); color: #94a3b8; border: 1px solid rgba(148,163,184,0.3); }
+  .footer { text-align: center; margin-top: 40px; font-size: 11px; color: #64748b; }
+</style>
+</head>
+<body>
+  <div class="diagram">
+    <div class="title">QuantPulse AI — Closed Research Loop</div>
+    <div class="subtitle">One fusion function. Every stage comparable.</div>
+    <div class="loop">
+      <div class="stage"><div class="label" style="color:#60a5fa">MarketEvent</div><div class="desc">Detected shock</div></div>
+      <div class="arrow"></div>
+      <div class="stage"><div class="label" style="color:#94a3b8">Evidence</div><div class="desc">Per-layer observation</div></div>
+      <div class="arrow"></div>
+      <div class="stage"><div class="label" style="color:#4ade80">Signal</div><div class="desc">Direction + confidence</div></div>
+      <div class="arrow"></div>
+      <div class="stage"><div class="label" style="color:#fbbf24">Thesis</div><div class="desc">Testable hypothesis</div></div>
+      <div class="arrow"></div>
+      <div class="stage"><div class="label" style="color:#f87171">Stress</div><div class="desc">7 perturbations</div></div>
+      <div class="arrow"></div>
+      <div class="stage"><div class="label" style="color:#c084fc">Prediction</div><div class="desc">Dated, directional</div></div>
+      <div class="arrow"></div>
+      <div class="stage"><div class="label" style="color:#94a3b8">Outcome</div><div class="desc">Resolved vs actual</div></div>
+      <div class="arrow"></div>
+      <div class="stage"><div class="label" style="color:#f87171">Autopsy</div><div class="desc">Failure analysis</div></div>
+      <div class="arrow"></div>
+      <div class="stage"><div class="label" style="color:#22d3ee">Experiment</div><div class="desc">Ablation tournament</div></div>
+    </div>
+    <div class="fusion-box">
+      <div class="title">services.fusion.fuse()</div>
+      <div class="desc">The single function called by signal generation, stress tests, and tournament ablations.<br>Weights are documented priors — not fitted. Every delta is attributable to the same model.</div>
+    </div>
+    <div class="feeds">
+      <div class="feed">Alpha Vantage<span class="status status-live">LIVE</span></div>
+      <div class="feed">yfinance<span class="status status-live">LIVE</span></div>
+      <div class="feed">Reddit<span class="status status-mock">MOCK</span></div>
+      <div class="feed">X / Twitter<span class="status status-mock">MOCK</span></div>
+      <div class="feed">HFT Order Book<span class="status status-mock">SIM</span></div>
+      <div class="feed">Prediction Markets<span class="status status-mock">MOCK</span></div>
+    </div>
+    <div class="layers">
+      <div class="layer layer-event">EVENT</div>
+      <div class="layer layer-news">NEWS</div>
+      <div class="layer layer-prediction">PREDICTION</div>
+      <div class="layer layer-reddit">REDDIT</div>
+      <div class="layer layer-x">X</div>
+      <div class="layer layer-flow">ORDER FLOW</div>
+      <div class="layer layer-price">PRICE</div>
+    </div>
+    <div class="footer">47 tests passing · Build clean · Token gate passes · No causal claims · No fabricated performance</div>
+  </div>
+</body>
+</html>

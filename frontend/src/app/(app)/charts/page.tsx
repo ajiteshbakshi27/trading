@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { RefreshCw } from "lucide-react";
 import { api } from "@/lib/api";
+import SectionCard from "@/components/research/SectionCard";
+import FlowGraph, { FlowStep } from "@/components/research/FlowGraph";
 
 const SYMS = ["NVDA", "TSLA", "AAPL", "AMD", "MSFT", "GOOGL", "META", "INTC", "AMZN"];
 
@@ -98,6 +100,30 @@ export default function ChartsPage() {
           {info ? ` · ${info.markers} markers` : ""}
         </div>
       </div>
+      <PropagationEmbed symbol={sym} />
+    </div>
+  );
+}
+
+function PropagationEmbed({ symbol }: { symbol: string }) {
+  const [chain, setChain] = useState<any>(null);
+  useEffect(() => {
+    api<any>(`/api/research/cycle?symbol=${symbol}&persist=false`)
+      .then((res) => setChain(res.chain ?? null))
+      .catch(() => setChain(null));
+  }, [symbol]);
+  return (
+    <div className="mt-4">
+      <SectionCard
+        title={`${symbol} — information flow`}
+        subtitle="Compact propagation chain"
+      >
+        {chain?.propagation_steps?.length ? (
+          <FlowGraph steps={chain.propagation_steps} selected={null} onSelect={() => {}} symbol={symbol} />
+        ) : (
+          <p className="text-sm text-slate-500">No propagation chain yet.</p>
+        )}
+      </SectionCard>
     </div>
   );
 }

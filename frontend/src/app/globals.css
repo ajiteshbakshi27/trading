@@ -24,6 +24,9 @@
   --c-rose-500: #ef4444;
   --c-rose-400: #fb7185;
   --c-amber-400: #fbbf24;
+  --c-blue-400: #60a5fa;
+  --c-purple-400: #c084fc;
+  --c-cyan-400: #22d3ee;
 
   /* ---- semantic channels (consumed by Tailwind with alpha support) ---- */
   --s-bg: 2 6 23;
@@ -36,6 +39,16 @@
   --s-accent-fg: 2 6 23;
   --s-destructive: 239 68 68;
   --s-border: 51 65 85;
+
+  /* ---- research visual signature (one accent per information layer) ---- */
+  --s-information: 96 165 250;   /* blue   — event, news            */
+  --s-social: 192 132 252;        /* purple — reddit, x             */
+  --s-prediction: 251 191 36;    /* amber  — prediction markets    */
+  --s-orderflow: 34 197 94;      /* green  — order flow            */
+  --s-price: 148 163 184;        /* slate  — price response        */
+  --s-risk: 239 68 68;           /* red    — risk, contradictions  */
+  --s-quantum: 34 211 238;       /* cyan   — quantum fair value    */
+  --s-uncertainty: 100 116 139;  /* gray   — model uncertainty    */
 
   /* ---- semantic colors (consumed by plain CSS) ---- */
   --color-background: rgb(var(--s-bg));
@@ -79,6 +92,34 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+
+/* Research visual signature utilities */
+.text-information { color: rgb(var(--s-information)); }
+.text-social { color: rgb(var(--s-social)); }
+.text-prediction { color: rgb(var(--s-prediction)); }
+.text-orderflow { color: rgb(var(--s-orderflow)); }
+.text-price { color: rgb(var(--s-price)); }
+.text-risk { color: rgb(var(--s-risk)); }
+.text-quantum { color: rgb(var(--s-quantum)); }
+.text-uncertainty { color: rgb(var(--s-uncertainty)); }
+
+.bg-information { background-color: rgb(var(--s-information) / 0.12); }
+.bg-social { background-color: rgb(var(--s-social) / 0.12); }
+.bg-prediction { background-color: rgb(var(--s-prediction) / 0.12); }
+.bg-orderflow { background-color: rgb(var(--s-orderflow) / 0.12); }
+.bg-price { background-color: rgb(var(--s-price) / 0.12); }
+.bg-risk { background-color: rgb(var(--s-risk) / 0.12); }
+.bg-quantum { background-color: rgb(var(--s-quantum) / 0.12); }
+.bg-uncertainty { background-color: rgb(var(--s-uncertainty) / 0.12); }
+
+.border-information { border-color: rgb(var(--s-information) / 0.35); }
+.border-social { border-color: rgb(var(--s-social) / 0.35); }
+.border-prediction { border-color: rgb(var(--s-prediction) / 0.35); }
+.border-orderflow { border-color: rgb(var(--s-orderflow) / 0.35); }
+.border-price { border-color: rgb(var(--s-price) / 0.35); }
+.border-risk { border-color: rgb(var(--s-risk) / 0.35); }
+.border-quantum { border-color: rgb(var(--s-quantum) / 0.35); }
+.border-uncertainty { border-color: rgb(var(--s-uncertainty) / 0.35); }
 
 /* Legacy dashboard glass (app shell only — marketing stays solid). */
 .glass {

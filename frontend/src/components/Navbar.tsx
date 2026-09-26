@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { Activity, OctagonX, RotateCcw } from "lucide-react";
+import { Activity, OctagonX, RotateCcw, Menu, X } from "lucide-react";
 import { api, wsUrl } from "@/lib/api";
 import { useSession } from "@/lib/useSession";
 import { clearSession } from "@/lib/auth";
@@ -12,15 +12,26 @@ const NAV = [
   { href: "/hft-orderbook", label: "HFT Book" },
   { href: "/prediction-bets", label: "Prediction Bets" },
   { href: "/allocator", label: "Allocator" },
+  { href: "/portfolio", label: "Portfolio" },
   { href: "/charts", label: "Charts" },
   { href: "/quantum-analytics", label: "Quantum" },
   { href: "/history", label: "History" },
+];
+
+const RESEARCH_NAV = [
+  { href: "/information-flow", label: "Information Flow" },
+  { href: "/thesis-lab", label: "Thesis Lab" },
+  { href: "/model-autopsy", label: "Model Autopsy" },
+  { href: "/research-lab", label: "Research Lab" },
+  { href: "/backtest", label: "Backtest Lab" },
+  { href: "/demo", label: "Demo" },
 ];
 
 export default function Navbar() {
   const pathname = usePathname();
   const [kill, setKill] = useState<any>({ halted: false });
   const [connected, setConnected] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const tries = useRef(0);
   const { session } = useSession();
   const router = useRouter();
@@ -38,7 +49,6 @@ export default function Navbar() {
   useEffect(() => {
     refresh();
     const id = setInterval(refresh, 5000);
-    // Live badge: WS probe with backoff reconnect.
     let ws: WebSocket | null = null;
     let dead = false;
     const connect = () => {
@@ -86,15 +96,48 @@ export default function Navbar() {
           <Activity className="h-5 w-5 text-emerald-400" />
           <span>QuantPulse AI</span>
         </Link>
-        <div className="flex flex-wrap gap-4 text-sm text-slate-300">
+
+        {/* Desktop nav */}
+        <div className="hidden flex-wrap gap-4 text-sm text-slate-300 lg:flex">
           {NAV.map((n) => (
             <Link key={n.href} href={n.href}
               className={pathname === n.href ? "font-semibold text-white" : "hover:text-white"}>
               {n.label}
             </Link>
           ))}
+          <div className="group relative">
+            <button className="flex items-center gap-1 hover:text-white">
+              Research
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="invisible absolute left-0 top-full z-50 mt-1 w-48 rounded-xl border border-slate-700/60 bg-[#0a0f1e] p-2 opacity-0 shadow-xl transition-all group-hover:visible group-hover:opacity-100">
+              {RESEARCH_NAV.map((n) => (
+                <Link key={n.href} href={n.href}
+                  className={`block rounded-lg px-3 py-2 text-sm ${
+                    pathname === n.href ? "bg-emerald-500/15 text-emerald-300" : "text-slate-300 hover:bg-white/5"
+                  }`}>
+                  {n.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <Link href="/legal" className={pathname === "/legal" ? "font-semibold text-white" : "hover:text-white"}>
+            Legal
+          </Link>
         </div>
-        <div className="ml-auto flex items-center gap-2">
+
+        {/* Mobile hamburger */}
+        <button
+          className="ml-auto rounded-lg p-2 text-slate-300 hover:bg-white/5 lg:hidden"
+          onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label="Toggle menu"
+        >
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+
+        <div className="ml-auto hidden items-center gap-2 lg:flex">
           {session && (
             <span className="flex items-center gap-1.5 rounded-full border border-slate-700/70 px-3 py-1 text-xs text-slate-300">
               <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
@@ -127,6 +170,65 @@ export default function Navbar() {
           )}
         </div>
       </div>
+
+      {/* Mobile menu */}
+      {mobileOpen && (
+        <div className="border-t border-slate-800/60 bg-[#030712]/95 px-4 py-3 lg:hidden">
+          <div className="space-y-1">
+            {NAV.map((n) => (
+              <Link key={n.href} href={n.href}
+                onClick={() => setMobileOpen(false)}
+                className={`block rounded-lg px-3 py-2 text-sm ${
+                  pathname === n.href ? "bg-emerald-500/15 text-emerald-300" : "text-slate-300"
+                }`}>
+                {n.label}
+              </Link>
+            ))}
+          </div>
+          <div className="mt-2 border-t border-slate-800/60 pt-2">
+            <div className="px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+              Research
+            </div>
+            <div className="space-y-1">
+              {RESEARCH_NAV.map((n) => (
+                <Link key={n.href} href={n.href}
+                  onClick={() => setMobileOpen(false)}
+                  className={`block rounded-lg px-3 py-2 text-sm ${
+                    pathname === n.href ? "bg-emerald-500/15 text-emerald-300" : "text-slate-300"
+                  }`}>
+                  {n.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+          <div className="mt-2 border-t border-slate-800/60 pt-2">
+            <Link href="/legal" onClick={() => setMobileOpen(false)}
+              className="block rounded-lg px-3 py-2 text-sm text-slate-300">
+              Legal
+            </Link>
+          </div>
+          <div className="mt-3 flex items-center gap-2 border-t border-slate-800/60 pt-3">
+            {session && (
+              <button onClick={signOut} className="rounded-lg bg-white/5 px-3 py-2 text-xs text-slate-300">
+                Sign out ({session.name})
+              </button>
+            )}
+            <span className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs ${
+              connected ? "bg-emerald-500/15 text-emerald-300" : "bg-rose-500/15 text-rose-300"}`}>
+              {connected ? "LIVE" : "OFFLINE"}
+            </span>
+            {kill.halted ? (
+              <button onClick={rearm} className="rounded-lg bg-amber-500 px-3 py-1 text-xs font-bold text-black">
+                RE-ARM
+              </button>
+            ) : (
+              <button onClick={trip} className="rounded-lg bg-rose-600 px-3 py-1 text-xs font-bold text-white">
+                KILL
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </nav>
   );
 }
