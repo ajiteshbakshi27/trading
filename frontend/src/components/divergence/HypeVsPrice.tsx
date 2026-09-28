@@ -18,11 +18,14 @@ export default function HypeVsPrice({
   price,
   hype,
   symbol,
+  currency = "USD",
 }: {
   price: Array<{ time: number; close: number }>;
   hype: Array<{ time: number; mentions: number }>;
   symbol: string;
+  currency?: string;
 }) {
+  const currSymbol = currency === "INR" ? "₹" : "$";
   const data = useMemo(() => {
     const hypeByTime = new Map(hype.map((h) => [h.time, h.mentions]));
     return price.map((p) => ({
@@ -74,7 +77,7 @@ export default function HypeVsPrice({
             }}
             labelFormatter={(t) => new Date(Number(t) * 1000).toLocaleDateString()}
             formatter={(value: any, name: string) => {
-              if (name === "close") return [`₹${Number(value).toFixed(2)}`, "Price"];
+              if (name === "close") return [`${currSymbol}${Number(value).toFixed(2)}`, "Price"];
               if (name === "mentions") return [value, "Reddit Mentions"];
               return [value, name];
             }}

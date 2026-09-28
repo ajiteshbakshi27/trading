@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
 import { RefreshCw, TrendingUp, TrendingDown } from "lucide-react";
-import DivergenceScanner, { DivergenceRow } from "@/components/divergence/DivergenceScanner";
+import DivergenceScanner, { DivergenceRow, formatPrice } from "@/components/divergence/DivergenceScanner";
 import HypeVsPrice from "@/components/divergence/HypeVsPrice";
 import NewsCatalystFeed, { NewsItem } from "@/components/divergence/NewsCatalystFeed";
 import { api } from "@/lib/api";
@@ -180,7 +180,7 @@ export default function Dashboard() {
                   </div>
                   <div className="text-right">
                     <div className="text-sm font-bold tabular-nums text-blue-200">
-                      ₹{r.market.price.toFixed(2)}
+                      {formatPrice(r.market.price, r.market.currency)}
                     </div>
                     <div className="text-[10px] tabular-nums text-blue-300/60">
                       market {r.market.market_bullish.toFixed(0)}% bull
@@ -279,7 +279,7 @@ export default function Dashboard() {
               Reddit mention volume (orange bars) behind price (blue line)
             </p>
           </div>
-          <HypeVsPrice price={priceData} hype={hypeData} symbol={selected} />
+          <HypeVsPrice price={priceData} hype={hypeData} symbol={selected} currency={selectedRow?.market.currency ?? "USD"} />
         </section>
 
         <section className="rounded-2xl border border-slate-700/50 bg-white/[0.02] p-5 lg:col-span-2">
