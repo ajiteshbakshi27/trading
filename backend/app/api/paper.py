@@ -23,7 +23,7 @@ from app.services.paper_trading import PaperLedger
 
 router = APIRouter(prefix="/api/paper", tags=["paper-trading"])
 
-#: One in-process ledger. Single-worker by design (render.yaml pins --workers 1).
+#: One in-process ledger. Single-worker by design (run uvicorn with --workers 1).
 _ledger = PaperLedger()
 
 

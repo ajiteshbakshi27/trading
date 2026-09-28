@@ -167,26 +167,39 @@ credentials, and data-mode integrity.
 ## Env (optional live keys)
 Copy `backend/.env.example` → `backend/.env` and fill Alpaca/Reddit/Twitter keys.
 
-## Deploy: Render (backend) + Vercel (frontend) + Supabase (DB)
+## Deploy: laptop backend + Vercel frontend (+ optional Supabase DB)
 
-### 1. Supabase (database)
+The backend runs on your laptop; the frontend is hosted on Vercel and calls
+your laptop from the browser. This works for you on your own machine while
+the backend is running — other visitors would need a public tunnel URL
+(e.g. `ngrok http 8000`) as `NEXT_PUBLIC_API_URL` instead.
+
+### 1. Supabase (database, optional — SQLite file works locally)
 1. Create project at supabase.com → Settings → API: copy URL, `anon` key, `service_role` key.
 2. Settings → Database: copy the Postgres connection string → `DATABASE_URL`.
 3. Tables are auto-created by the backend on first boot (`init_db`).
 
-### 2. Render (backend, via `render.yaml` Blueprint)
-1. Push this repo to GitHub. Render → New → Blueprint → select repo.
-2. Paste secrets: `ALPACA_*`, `REDDIT_*`, `TWITTER_BEARER_TOKEN`, `KALSHI_API_KEY`,
-   `DATABASE_URL`, `SUPABASE_*` (mark secrets secret). Redis is provisioned by the blueprint.
-3. Deploy → verify `https://<svc>.onrender.com/health` and `/docs`.
-4. Note: free tier sleeps when idle (first request slow; WS disconnects on sleep).
+### 2. Laptop (backend — always running while you use the site)
+1. Fill `backend/.env` (keys optional; empty = honest mock fallback).
+2. Start: `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1`
+   from `backend/`. Verify `http://localhost:8000/health`.
+3. Optional live Indian stocks: run `npx wrangler dev --port 5000` in
+   `Indian-Stock-Market-API/` (defaults are already wired: no config needed).
+4. In `backend/.env`, replace `<your-app>` in `CORS_ORIGINS` with your real
+   Vercel app name after step 3 below, then restart the backend.
 
 ### 3. Vercel (frontend)
-1. Vercel → New Project → same repo, **Root Directory = `frontend`**.
-2. Env var: `NEXT_PUBLIC_API_URL=https://<svc>.onrender.com`, then Deploy.
-3. Back in Render, set `CORS_ORIGINS=https://<app>.vercel.app` and redeploy backend.
+1. Vercel → New Project → same repo, **Root Directory = `quantpulse-ai/frontend`**.
+2. Env vars: `NEXT_PUBLIC_API_URL=http://localhost:8000`,
+   `NEXT_PUBLIC_REQUIRE_AUTH=0`, then Deploy.
+3. Back in `backend/.env`, set `CORS_ORIGINS=...https://<app>.vercel.app`
+   and restart the backend.
 
 ### 4. Verify production
 - `GET /api/feeds/status` shows `live` per configured key.
 - Dashboard + `/prediction-bets` (red edges) + `/allocator` load data.
 - `GET /api/history` row count grows; `POST /api/allocate` returns a plan.
+
+> Legacy alternative: `render.yaml` still pins a Render backend blueprint
+> (`NEXT_PUBLIC_API_URL=https://<svc>.onrender.com`). Unused in the
+> laptop-backend setup; free tier sleeps when idle.

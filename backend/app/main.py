@@ -46,9 +46,9 @@ from app.streaming import StreamClient
 from app import copilot
 from app import database as db
 from app.api import (demo, divergence, event_transmission, experiments,
-                     information, monte_carlo, news, paper,
-                     prediction_autopsy, research, research_backtest,
-                     sentiment_divergence, thesis)
+                     indian_stocks, information, monte_carlo, news, paper,
+                     prediction_autopsy, reddit_extractor, research,
+                     research_backtest, sentiment_divergence, thesis)
 from app.api.context import ResearchContext
 from app.services.fusion import FUSION_PRIORS, MODEL_VERSION as FUSION_VERSION
 settings = get_settings()
@@ -101,6 +101,8 @@ app.include_router(divergence.router)
 app.include_router(news.router)
 app.include_router(monte_carlo.router)
 app.include_router(sentiment_divergence.router)
+app.include_router(reddit_extractor.router)
+app.include_router(indian_stocks.router)
 
 # Phase 2: create tables (Postgres when DATABASE_URL works, else SQLite).
 # Never blocks startup: failures degrade to in-memory-safe fallbacks.
@@ -142,7 +144,7 @@ async def security_headers(request, call_next):
 @app.middleware("http")
 async def rate_limit(request, call_next):
     """In-process limiter for expensive / state-changing endpoints.
-    Single-worker by design (render.yaml pins --workers 1)."""
+    Single-worker by design (run uvicorn with --workers 1)."""
     path = request.url.path
     limited = (
         path.startswith("/ws/")

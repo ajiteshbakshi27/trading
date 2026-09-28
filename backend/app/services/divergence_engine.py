@@ -118,6 +118,62 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
         return default
 
 
+#: Symbols served by the Indian Stock Market API (NSE/BSE universe).
+_INDIAN_SYMBOLS = frozenset({"RELIANCE", "TATAMOTORS", "ADANIENT", "INFY",
+                             "NIFTY50", "TCS", "HDFCBANK", "SBIN", "ITC",
+                             "TATASTEEL", "ONGC", "WIPRO"})
+
+
+def _indian_quote(symbol: str) -> Optional[Dict[str, Any]]:
+    """Live NSE/BSE quote via the Indian Stock Market API.
+
+    Returns ``{"price", "change_pct", "volume"}`` or ``None`` when the
+    upstream is unreachable. Never raises. Payload keys are probed
+    defensively because upstream field names vary by version.
+    """
+    try:
+        from app.services import indian_stock_api as isa
+    except Exception:
+        return None
+    try:
+        data = isa.get_stock_data(symbol)
+    except Exception:
+        return None
+    if not isinstance(data, dict):
+        return None
+    # Upstream may nest the quote one level deep; unwrap common wrappers.
+    payload = data
+    for wrapper in ("data", "quote", "result"):
+        inner = data.get(wrapper)
+        if isinstance(inner, dict) and any(
+                k in inner for k in ("price", "currentPrice", "lastPrice",
+                                     "ltp", "close")):
+            payload = inner
+            break
+    price = 0.0
+    for key in ("price", "currentPrice", "lastPrice", "ltp", "close"):
+        price = _safe_float(payload.get(key), 0.0)
+        if price > 0:
+            break
+    if price <= 0:
+        return None
+    change = 0.0
+    for key in ("percentChange", "pChange", "change_pct", "dayChangePct",
+                "perChange", "changePercent"):
+        if payload.get(key) is not None:
+            change = _safe_float(payload.get(key), 0.0)
+            break
+    volume = 0
+    for key in ("volume", "totalTradedVolume", "qty", "totalQty"):
+        try:
+            volume = int(float(payload.get(key, 0) or 0))
+        except (TypeError, ValueError):
+            continue
+        if volume > 0:
+            break
+    return {"price": price, "change_pct": change, "volume": volume}
+
+
 def _market_snapshot(symbol: str) -> Dict[str, Any]:
     """Price, change, volume and a market-implied bullish score.
 
@@ -163,6 +219,20 @@ def _market_snapshot(symbol: str) -> Dict[str, Any]:
                 })
     except Exception:
         pass
+
+    # Indian tickers: live NSE/BSE quote before falling back to cache.
+    if out["price"] <= 0 and symbol.upper() in _INDIAN_SYMBOLS:
+        live = _indian_quote(symbol)
+        if live:
+            out.update({
+                "price": live["price"],
+                "change_pct": live["change_pct"],
+                "volume": live["volume"],
+                "data_mode": DataMode.LIVE.value,
+                "source": "indian-stock-api",
+                "currency": "INR",
+                "exchange": "NSE",
+            })
 
     # Fallback if AV failed or returned zero
     if out["price"] <= 0:
@@ -219,17 +289,18 @@ def _market_snapshot(symbol: str) -> Dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 def _reddit_snapshot(symbol: str, engine=None) -> Dict[str, Any]:
-    """Reddit mention count, bullish% and mention velocity."""
-    from app.agents.sentiment_agent import SentimentEngine
-    from app.config import get_settings
+    """Reddit mention count, bullish% and mention velocity.
+
+    Uses the reddit_extractor service (live or mock) instead of calling
+    SentimentEngine directly, so all Reddit data flows through one path.
+    """
+    from app.services import reddit_extractor
 
     key = f"reddit:{symbol.upper()}"
     cached = _cache.get(key, _REDDIT_TTL_S)
     if cached:
         return cached
 
-    s = get_settings()
-    eng = engine or SentimentEngine()
     out: Dict[str, Any] = {
         "symbol": display_symbol(symbol),
         "mentions": 0,
@@ -240,17 +311,16 @@ def _reddit_snapshot(symbol: str, engine=None) -> Dict[str, Any]:
         "sample_posts": [],
     }
     try:
-        posts = eng.reddit_live(s.REDDIT_CLIENT_ID, s.REDDIT_CLIENT_SECRET, limit=20)
-        if not posts:
-            posts = eng.reddit_mock(limit=20)
+        result = reddit_extractor.fetch_reddit(limit_per_sub=20)
+        posts = result.get("posts", [])
         matched = [p for p in posts if symbol.upper() in p.get("tickers", [])]
         if matched:
             out["mentions"] = len(matched)
             out["reddit_bullish"] = round(
                 sum(p.get("sentiment", 0.0) for p in matched) / len(matched) * 50 + 50, 1)
             out["sample_posts"] = [p.get("text", "")[:120] for p in matched[:3]]
-            out["data_mode"] = DataMode.LIVE.value if s.has_reddit else DataMode.MOCK.value
-            out["source"] = "praw" if s.has_reddit else "mock"
+            out["data_mode"] = result.get("data_mode", "mock")
+            out["source"] = result.get("source", "mock")
         out["mention_velocity"] = round(len(matched) / max(1, len(posts)), 4)
     except Exception:
         pass

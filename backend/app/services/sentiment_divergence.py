@@ -2,14 +2,13 @@
 QuantPulse AI — Cross-Platform Sentiment Divergence.
 
 Measures how much sentiment *disagrees across platforms* for the same ticker.
-Reddit may be euphoric while X is neutral and the prediction market is bearish —
-that disagreement is itself a signal.
+Reddit may be euphoric while X is neutral, or vice versa. That disagreement is
+itself a signal — it often precedes a resolution in one direction.
 
 Outputs per symbol:
   * divergence_score — 0..1, how far apart the platforms are
   * outlier_platform — which platform disagrees most with the others
-  * retail_split — e.g. "Reddit 86% bull vs X 57% bull"
-  * per_platform — the raw sentiment from each source
+  * per_platform     — the raw sentiment from each source
 
 All values are labelled MOCK unless a live credential produced them.
 """
@@ -22,7 +21,6 @@ from typing import Any, Dict, List, Optional
 from app.models.common import clamp
 from app.models.enums import DataMode
 
-#: Cache TTL — social sentiment is slow-moving.
 _TTL_S = 120.0
 
 
@@ -82,9 +80,7 @@ def _reddit_sentiment(symbol: str, engine=None) -> Dict[str, Any]:
 
 def _x_sentiment(symbol: str, engine=None) -> Dict[str, Any]:
     from app.agents.sentiment_agent import SentimentEngine
-    from app.config import get_settings
 
-    s = get_settings()
     eng = engine or SentimentEngine()
     out = {"source": "x", "sentiment": 0.0, "bullish_pct": 50.0,
            "mentions": 0, "data_mode": DataMode.MOCK.value}
@@ -105,8 +101,6 @@ def _x_sentiment(symbol: str, engine=None) -> Dict[str, Any]:
 
 
 def _prediction_sentiment(symbol: str) -> Dict[str, Any]:
-    from app.services.divergence_engine import FALLBACK_PRICES
-
     out = {"source": "prediction", "sentiment": 0.0, "bullish_pct": 50.0,
            "mentions": 0, "data_mode": DataMode.MOCK.value}
     try:
@@ -147,7 +141,6 @@ def compute_divergence(symbol: str, engine=None) -> Dict[str, Any]:
     bullish_values = [p["bullish_pct"] for p in platforms]
     sentiments = [p["sentiment"] for p in platforms]
 
-    # Divergence = normalised spread of bullish% across platforms.
     mean_bull = sum(bullish_values) / len(bullish_values)
     variance = sum((b - mean_bull) ** 2 for b in bullish_values) / len(bullish_values)
     std = math.sqrt(variance)

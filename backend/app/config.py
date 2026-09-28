@@ -31,6 +31,8 @@ class Settings(BaseSettings):
     # Generic market-data provider (Alpha Vantage / FMP / Polygon.io)
     FINANCIAL_DATA_API_KEY: Optional[str] = Field(default=None, description="Alpha Vantage / FMP / Polygon.io key")
     FINANCIAL_DATA_PROVIDER: str = Field(default="alphavantage", description="Market data provider name")
+    # Indian Stock Market API (0xramm/Indian-Stock-Market-API, NSE/BSE Flask service)
+    INDIAN_STOCK_API_URL: str = Field(default="http://localhost:5000", description="Base URL of the Indian Stock Market API")
 
     # API Keys - Social Sentiment
     REDDIT_CLIENT_ID: Optional[str] = Field(default=None, description="Reddit API client ID")
@@ -188,6 +190,7 @@ class Settings(BaseSettings):
             "hft_orderbook": "mock_simulator",
             "alpaca_trading": "live" if self.has_alpaca else "mock",
             "market_data": "live" if (self.has_alpaca or self.has_financial_data) else "mock",
+            "indian_stocks": "live" if self.INDIAN_STOCK_API_URL else "mock",
             "reddit": "live" if self.has_reddit else "mock",
             "twitter": "live" if self.has_twitter else "mock",
             "prediction": "live" if (self.KALSHI_API_KEY or self.POLYMARKET_API_KEY) else "mock",
