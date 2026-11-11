@@ -59,8 +59,7 @@ E2E clicked through all pages in Playwright with zero console errors.
    simulated fallback was tested).
 4. Turn on real services per `SETUP.md`: Supabase, ANTHROPIC_API_KEY, Kite, Telegram,
    Reddit; deploy Render + Vercel. None were tested with real keys yet.
-5. Known gaps: WhatsApp alerts not done (Telegram only); F&O default lot
-   sizes in `parakh/options.py` must be confirmed against current NSE circulars;
+5. Known gaps: WhatsApp alerts not done (Telegram only); SENSEX (BSE) lot size unverified;
    name/trademark/domain check for "Parakh" not done.
 6. Later: business model discussion; SEBI legal review; licensed NSE data for commercial launch.
 
@@ -82,3 +81,9 @@ frontend: `cd frontend && npm install && npm run dev` → http://localhost:3000 
   deterministic, no look-ahead, output lists `evidence_layers` / `not_backtested`. Honest result on
   real NVDA 1y: ~47% directional accuracy (below coin flip) — expected, not a bug.
 - Tests: 110 pass (excluding the PyJWT-dependent one). `tsc --noEmit` clean.
+- Tournament: no more silent synthetic data. Order: stored evidence -> real price momentum -> empty
+  (INSUFFICIENT DATA). Synthetic set only via `allow_synthetic=True` (used by the labelled demo scenario).
+- F&O lot sizes verified from NSE `fo_mktlots.csv` (2026-11-11): NIFTY 65, BANKNIFTY 30, FINNIFTY 60,
+  MIDCPNIFTY 120 (were 75/35/65/140). SENSEX 20 unverified. Re-check each NSE circular.
+- PyJWT installed; `npm install` run (was missing `@supabase/supabase-js`); full `npm run build` passes.
+  Caches for pip/npm are on `D:\Parakh\.pip-cache` and `.npm-cache`. Tests: 113 pass.

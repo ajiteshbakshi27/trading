@@ -8,6 +8,9 @@ legs' implied volatility.
 
 Lot sizes change by NSE circular — the defaults below are a convenience and
 the UI tells users to confirm the current lot size.
+NSE sizes (NIFTY/BANKNIFTY/FINNIFTY/MIDCPNIFTY) checked on 2026-11-11 against
+https://nsearchives.nseindia.com/content/fo/fo_mktlots.csv (Nov-26 contracts).
+SENSEX is a BSE contract and was NOT verified.
 """
 from __future__ import annotations
 
@@ -18,7 +21,7 @@ from scipy.optimize import brentq
 from scipy.stats import norm
 
 RISK_FREE = 0.065  # approx. Indian 91-day T-bill yield; editable per request
-DEFAULT_LOTS = {"NIFTY": 75, "BANKNIFTY": 35, "FINNIFTY": 65, "MIDCPNIFTY": 140, "SENSEX": 20}
+DEFAULT_LOTS = {"NIFTY": 65, "BANKNIFTY": 30, "FINNIFTY": 60, "MIDCPNIFTY": 120, "SENSEX": 20}
 
 
 def bs_price(spot: float, strike: float, t: float, vol: float, kind: str, r: float = RISK_FREE) -> float:

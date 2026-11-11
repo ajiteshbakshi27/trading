@@ -11,8 +11,12 @@ DESIGN
   * Every arm calls `services.fusion.fuse` — the same function the dashboard
     and the stress lab use. That is what makes the comparison meaningful.
   * The dataset is built from the platform's own stored evidence when
-    available, and from a deterministic synthetic observation set otherwise.
-    Synthetic arms are labelled SIMULATED/BACKTEST, never LIVE.
+    available; otherwise from real price history (momentum layer only, no
+    look-ahead); otherwise it is EMPTY and the matrix says INSUFFICIENT DATA.
+    A synthetic observation set exists only for the labelled demo scenario and
+    must be requested with allow_synthetic=True. Its features are generated
+    from the outcome, so it can demonstrate the machinery but never measure
+    anything.
   * Results carry sample size. Where the sample is thin the cell reports
     INSUFFICIENT DATA instead of a number. No "winner" labels are produced.
 """
@@ -81,13 +85,13 @@ LAYER_EXCLUSIONS: Dict[str, frozenset] = {
 
 def build_observation_set(symbols: Sequence[str], n: int = 60,
                           seed: int = 7,
-                          data_mode: Optional[DataMode] = None
+                          data_mode: Optional[DataMode] = None,
+                          allow_synthetic: bool = False
                           ) -> Tuple[List[Dict[str, Any]], WindowSpec]:
     """Assemble the experiment dataset.
 
-    Prefers stored evidence (real observations). Falls back to a deterministic
-    synthetic set built from a seeded generator so the tournament is always
-    demonstrable — labelled SIMULATED in that case.
+    Order: stored evidence -> real price history (momentum only) -> synthetic
+    (only if `allow_synthetic`, used by the labelled demo) -> empty.
     """
     from app import database as db
 
@@ -114,7 +118,13 @@ def build_observation_set(symbols: Sequence[str], n: int = 60,
                 })
         if rows:
             mode = _mode_of_rows(rows)
+    price_based = False
     if not rows:
+        rows = _price_observations(symbols, n=n)
+        if rows:
+            mode = DataMode.BACKTEST
+            price_based = True
+    if not rows and allow_synthetic:
         rows = _synthetic_observations(symbols, n=n, seed=seed)
         mode = DataMode.SIMULATED
 
@@ -122,13 +132,21 @@ def build_observation_set(symbols: Sequence[str], n: int = 60,
     start = min((str(r.get("timestamp", "")) for r in rows), default=iso())
     end = max((str(r.get("timestamp", "")) for r in rows), default=iso())
     return rows, WindowSpec(
-        label="stored evidence" if mode is not DataMode.SIMULATED
-              else "deterministic synthetic observation set",
+        label=("deterministic synthetic observation set"
+               if mode is DataMode.SIMULATED
+               else "price history (momentum layer only)" if price_based
+               else "stored evidence" if rows else "no data"),
         start=start, end=end, n_observations=len(rows),
         symbols=sorted({str(r.get("symbol", "")) for r in rows if r.get("symbol")}),
         seed=seed, data_mode=mode,
-        note=("Built from platform evidence records." if mode is not DataMode.SIMULATED
-              else "Synthetic: no stored evidence was available. Not market data."),
+        note=("Synthetic: demo scenario only. Not market data."
+              if mode is DataMode.SIMULATED
+              else "Built from real price history. Only the momentum layer exists "
+                   "historically; other features have no data and are not simulated."
+              if price_based
+              else "Built from platform evidence records." if rows
+              else "No stored evidence and no price history reachable. Nothing "
+                   "was simulated."),
     )
 
 
@@ -151,6 +169,43 @@ def _features_from_row(row: Dict[str, Any]) -> Dict[str, Any]:
     return out
 
 
+def _price_observations(symbols: Sequence[str], n: int) -> List[Dict[str, Any]]:
+    """Observations from real daily closes: momentum layer only.
+
+    Each row uses only information available before day i; the realised move
+    is day i -> i+1. Nothing is random. Returns [] when no history is reachable.
+    """
+    from app.services import research_backtest as rb
+
+    syms = list(symbols) or ["NVDA"]
+    per_symbol = max(1, -(-n // len(syms)))
+    rows: List[Dict[str, Any]] = []
+    for symbol in syms:
+        closes, mode = rb._load_prices(symbol, "1y")
+        if not closes or mode is DataMode.MOCK:
+            continue
+        last = len(closes) - 1                      # no t+1 for the final close
+        for i in range(max(20, last - per_symbol), last):
+            ev = rb._daily_evidence(closes, i)
+            if not ev:
+                continue
+            actual = (closes[i + 1] / closes[i] - 1.0) * 100.0
+            rows.append({
+                "symbol": symbol.upper(),
+                "features": {"momentum": {
+                    "z_score": ev[0]["z_score"],
+                    "confidence": ev[0]["confidence"],
+                    "data_mode": DataMode.BACKTEST.value,
+                    "layer": "momentum"}},
+                "actual_move_pct": round(actual, 4),
+                "regime": rb._regime_at(closes, i).value,
+                "realized_vol": round(abs(actual), 4),
+                "timestamp": f"{symbol.upper()} t-{last - i}",
+                "data_mode": DataMode.BACKTEST.value,
+            })
+    return rows
+
+
 def _synthetic_observations(symbols: Sequence[str], n: int,
                             seed: int) -> List[Dict[str, Any]]:
     """Deterministic pseudo-market observations.
@@ -158,6 +213,8 @@ def _synthetic_observations(symbols: Sequence[str], n: int,
     Built from a seeded LCG so a re-run reproduces byte-identical inputs. The
     generator is documented in the README as synthetic: the correlations it
     encodes are chosen to be interesting, not estimated from any market.
+    Features are generated FROM the outcome, so this is for the labelled demo
+    only (allow_synthetic=True) and must never be read as a measurement.
     """
     import random
     rng = random.Random(seed)
@@ -404,9 +461,11 @@ def run_arm(name: str, description: str, disabled: Sequence[FeatureKey],
 
 
 def run_suite(symbols: Sequence[str], n: int = 60, seed: int = 7,
-              method: Optional[EvaluationMethod] = None) -> Dict[str, Any]:
+              method: Optional[EvaluationMethod] = None,
+              allow_synthetic: bool = False) -> Dict[str, Any]:
     """Run every ablation arm over one shared dataset and window."""
-    observations, window = build_observation_set(symbols, n=n, seed=seed)
+    observations, window = build_observation_set(
+        symbols, n=n, seed=seed, allow_synthetic=allow_synthetic)
     method = method or EvaluationMethod()
     results: List[ExperimentResult] = []
     baseline_id = ""

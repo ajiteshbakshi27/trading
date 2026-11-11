@@ -438,7 +438,8 @@ def run_scenario_cycle(persist: bool = True) -> Dict[str, Any]:
         persist=persist)
 
     suite = signal_tournament.run_suite(["NVDA"], n=scenarios.TOURNAMENT_N,
-                                        seed=scenarios.TOURNAMENT_SEED)
+                                        seed=scenarios.TOURNAMENT_SEED,
+                                        allow_synthetic=True)  # labelled demo only
     results = signal_tournament.attach_deltas(suite)
     matrix = signal_tournament.build_matrix(suite)
     if persist:

@@ -338,30 +338,50 @@ class TestEventTransmission:
 
 class TestSignalTournament:
     def test_build_observation_set_deterministic(self):
-        obs1, win1 = signal_tournament.build_observation_set(["NVDA"], n=30, seed=7)
-        obs2, win2 = signal_tournament.build_observation_set(["NVDA"], n=30, seed=7)
+        obs1, win1 = signal_tournament.build_observation_set(["NVDA"], n=30, seed=7, allow_synthetic=True)
+        obs2, win2 = signal_tournament.build_observation_set(["NVDA"], n=30, seed=7, allow_synthetic=True)
         assert len(obs1) == len(obs2)
         assert obs1[0]["actual_move_pct"] == obs2[0]["actual_move_pct"]
 
     def test_run_arm_produces_metrics(self):
-        obs, window = signal_tournament.build_observation_set(["NVDA"], n=40, seed=7)
+        obs, window = signal_tournament.build_observation_set(["NVDA"], n=40, seed=7, allow_synthetic=True)
         result = signal_tournament.run_arm("TEST", "", [], obs, window)
         assert result.n_observations > 0
         assert result.overall.n > 0
 
     def test_matrix_withholds_below_floor(self):
-        suite = signal_tournament.run_suite(["NVDA"], n=10, seed=7)
+        suite = signal_tournament.run_suite(["NVDA"], n=10, seed=7, allow_synthetic=True)
         matrix = signal_tournament.build_matrix(suite, min_n=20)
         assert matrix.status == "insufficient_data"
 
     def test_matrix_computes_above_floor(self):
-        suite = signal_tournament.run_suite(["NVDA"], n=60, seed=7)
+        suite = signal_tournament.run_suite(["NVDA"], n=60, seed=7, allow_synthetic=True)
         matrix = signal_tournament.build_matrix(suite, min_n=5)
         assert matrix.status in ("ok", "partial")
         assert len(matrix.rows) > 0
 
+    def test_default_never_fabricates_observations(self, monkeypatch):
+        from app.models.enums import DataMode
+        from app.services import research_backtest as rb
+        monkeypatch.setattr(rb, "_load_prices", lambda *a, **k: (None, DataMode.MOCK))
+        obs, window = signal_tournament.build_observation_set(["NVDA"], n=40)
+        assert obs == [] and window.data_mode is not DataMode.SIMULATED
+        suite = signal_tournament.run_suite(["NVDA"], n=40)
+        assert signal_tournament.build_matrix(suite).status == "insufficient_data"
+
+    def test_price_observations_are_momentum_only_and_deterministic(self, monkeypatch):
+        from app.models.enums import DataMode
+        from app.services import research_backtest as rb
+        closes = [100 + i * 0.4 + (i % 4) for i in range(120)]
+        monkeypatch.setattr(rb, "_load_prices", lambda *a, **k: (closes, DataMode.LIVE))
+        a, win = signal_tournament.build_observation_set(["NVDA"], n=30)
+        b, _ = signal_tournament.build_observation_set(["NVDA"], n=30)
+        assert a == b and len(a) >= 20
+        assert win.data_mode is DataMode.BACKTEST
+        assert all(list(r["features"]) == ["momentum"] for r in a)
+
     def test_ablation_arms_differ(self):
-        suite = signal_tournament.run_suite(["NVDA"], n=60, seed=7)
+        suite = signal_tournament.run_suite(["NVDA"], n=60, seed=7, allow_synthetic=True)
         results = signal_tournament.attach_deltas(suite)
         full = next(r for r in results if not r.features_disabled)
         no_social = next(
