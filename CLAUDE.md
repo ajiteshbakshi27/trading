@@ -59,9 +59,7 @@ E2E clicked through all pages in Playwright with zero console errors.
    simulated fallback was tested).
 4. Turn on real services per `SETUP.md`: Supabase, ANTHROPIC_API_KEY, Kite, Telegram,
    Reddit; deploy Render + Vercel. None were tested with real keys yet.
-5. Known gaps: legacy `backend/app/main.py` (~750 lines) not yet split into routers;
-   Labs "Model backtest" (`services/research_backtest.py`) still uses synthetic
-   social/news evidence; WhatsApp alerts not done (Telegram only); F&O default lot
+5. Known gaps: WhatsApp alerts not done (Telegram only); F&O default lot
    sizes in `parakh/options.py` must be confirmed against current NSE circulars;
    name/trademark/domain check for "Parakh" not done.
 6. Later: business model discussion; SEBI legal review; licensed NSE data for commercial launch.
@@ -77,3 +75,10 @@ frontend: `cd frontend && npm install && npm run dev` → http://localhost:3000 
 - Rename finished: folder is now `D:\Parakh\parakh`; `design-system/parakh`; `backend/parakh.db`;
   remaining code/doc/.env mentions replaced. GitHub repo NOT renamed (still `ajiteshbakshi27/trading`).
 - `git push` was blocked by the permission system; still NOT pushed.
+- Live NSE data verified from the PC (RELIANCE quote + 30d history came back `live`).
+- `main.py` split: now ~155 lines (wiring only). Endpoints in `app/api/{system,snapshot,trading,history}.py`,
+  shared singletons in `app/core/runtime.py`. Fixed bug: `/api/predictions/history` was shadowed (404).
+- Labs model backtest no longer fabricates social/news/order-flow evidence: price-momentum only,
+  deterministic, no look-ahead, output lists `evidence_layers` / `not_backtested`. Honest result on
+  real NVDA 1y: ~47% directional accuracy (below coin flip) — expected, not a bug.
+- Tests: 110 pass (excluding the PyJWT-dependent one). `tsc --noEmit` clean.

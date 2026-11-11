@@ -427,6 +427,23 @@ class TestResearchBacktest:
         assert result["status"] in ("ok", "insufficient_data")
         assert len(result["results"]) == 2
 
+    def test_backtest_evidence_is_price_only_and_deterministic(self):
+        from app.services import research_backtest as rb
+        closes = [100 + i * 0.5 + (i % 3) for i in range(60)]
+        a = rb._daily_evidence(closes, 40)
+        b = rb._daily_evidence(closes, 40)
+        assert a == b                                   # nothing random
+        assert [e["feature"] for e in a] == ["momentum"]  # no simulated layers
+        # no look-ahead: changing the future must not change today's evidence
+        future = closes[:41] + [999.0] * 19
+        assert rb._daily_evidence(future, 40) == a
+
+    def test_backtest_result_names_what_was_not_backtested(self):
+        from app.services import research_backtest
+        result = research_backtest.run_backtest("NVDA", period="1y", min_resolved=20)
+        assert result["evidence_layers"] == ["momentum"]
+        assert "social" in result["not_backtested"]
+
     def test_backtest_predictions_have_outcomes(self):
         from app.services import research_backtest
         result = research_backtest.run_backtest("NVDA", period="1y", min_resolved=20)

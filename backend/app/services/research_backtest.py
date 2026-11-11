@@ -6,7 +6,7 @@ report *measured* results instead of INSUFFICIENT DATA.
 
 For each trading day t in the window:
     1. detect events from the price/vol action up to t
-    2. collect evidence (news/social/prediction/flow/momentum proxies)
+    2. build evidence from past prices only (momentum; no simulated layers)
     3. fuse into a signal + thesis
     4. stress the thesis
     5. create a prediction for t -> t+1
@@ -48,6 +48,12 @@ from app.services import event_transmission, feed_layer, fusion, prediction_auto
 
 MODEL_VERSION = "qp-fusion-1.0"
 BACKTEST = DataMode.BACKTEST
+#: Layers a price-only replay can honestly reproduce. Everything else
+#: (order flow, news, social, prediction markets, quantum) has no history.
+EVIDENCE_LAYERS = ["momentum"]
+NOT_BACKTESTED = ["order_flow", "news", "social", "prediction", "quantum"]
+#: A momentum reading from real closes is fully observed; fixed, not random.
+MOMENTUM_OBS_CONFIDENCE = 0.7
 
 
 # ---------------------------------------------------------------------------
@@ -91,20 +97,18 @@ def _synthetic_prices(n: int, seed: int) -> List[float]:
 # Per-day evidence construction
 # ---------------------------------------------------------------------------
 
-def _daily_evidence(closes: List[float], i: int,
-                    rng: random.Random) -> List[Dict[str, Any]]:
+def _daily_evidence(closes: List[float], i: int) -> List[Dict[str, Any]]:
     """Build one day's fusion evidence from the price path.
 
-    INTEGRITY: only information available *before* day i is used. The forward
-    return is never touched — using it would be look-ahead bias and would
-    produce a flattering but meaningless accuracy number.
+    INTEGRITY: only information available *before* day i is used, and every
+    value is a deterministic function of past prices. The forward return is
+    never touched (that would be look-ahead bias), and nothing is random.
 
-    In a backtest we do not have live social/news/prediction feeds for each
-    historical day, so those layers are represented by a deterministic
-    function of *past* price action only. This is documented as such and
-    labelled BACKTEST. The construction is the same one the tournament uses
-    for its synthetic observation set, so backtested and synthetic results
-    are comparable.
+    Only the MOMENTUM layer can be reconstructed honestly from daily closes.
+    Order flow, news, social, prediction-market and quantum layers have no
+    historical record here, so they are NOT backtested; they are left out
+    instead of being simulated. A result therefore measures a price-momentum
+    rule only, and says so in its output (`evidence_layers`).
     """
     window = closes[max(0, i - 20):i + 1]
     if len(window) < 10:
@@ -115,34 +119,15 @@ def _daily_evidence(closes: List[float], i: int,
             for j in range(1, len(recent))]
     mean = sum(rets) / len(rets)
     vol = math.sqrt(sum((r - mean) ** 2 for r in rets) / max(1, len(rets) - 1))
-
-    # Deterministic pseudo-observations for the layers we cannot reconstruct.
-    # Each is a function of PAST returns only. Correlations are chosen to be
-    # plausible, not estimated — see README. No forward information is used.
-    past_signal = trend * 0.6 + vol * 0.4
-    base_corr = {
-        "order_flow": 0.55,
-        "momentum": 0.45,
-        "prediction": 0.30,
-        "news": 0.25,
-        "social": 0.18,
-        "quantum": 0.08,
-    }
-    evidence = []
-    for feature, corr in base_corr.items():
-        noise = rng.gauss(0.0, 0.85)
-        value = corr * past_signal + noise
-        layer = {
-            "social": "reddit" if rng.random() < 0.6 else "x",
-        }.get(feature, feature)
-        evidence.append({
-            "feature": feature,
-            "z_score": round(max(-3.0, min(3.0, value / 0.85)), 4),
-            "confidence": round(rng.uniform(0.35, 0.85), 3),
-            "data_mode": BACKTEST.value,
-            "layer": layer,
-        })
-    return evidence
+    # Standardised trend: the 10-day move in units of its own typical noise.
+    z = trend / (max(vol, 0.05) * math.sqrt(len(rets)))
+    return [{
+        "feature": "momentum",
+        "z_score": round(max(-3.0, min(3.0, z)), 4),
+        "confidence": MOMENTUM_OBS_CONFIDENCE,
+        "data_mode": BACKTEST.value,
+        "layer": "momentum",
+    }]
 
 
 def _regime_at(closes: List[float], i: int) -> Regime:
@@ -164,7 +149,9 @@ def _regime_at(closes: List[float], i: int) -> Regime:
 
 def run_backtest(symbol: str, period: str = "1y", min_resolved: int = 20,
                  seed: int = 7) -> Dict[str, Any]:
-    """Replay the closed loop over a historical window.
+    """`seed` only drives the fallback synthetic price path (labelled MOCK).
+
+    Replay the closed loop over a historical window.
 
     Returns a result dict with measured metrics, per-regime breakdown, and
     the list of resolved predictions (for provenance + failure analysis).
@@ -180,7 +167,6 @@ def run_backtest(symbol: str, period: str = "1y", min_resolved: int = 20,
     # MOCK is reserved for the case where even the price path is synthetic.
     data_mode = DataMode.BACKTEST if price_mode is not DataMode.MOCK else DataMode.MOCK
 
-    rng = random.Random(seed + abs(hash(symbol)) % 1000)
     resolved: List[Dict[str, Any]] = []
     n_days = 0
     regime_counts: Dict[str, int] = {}
@@ -191,7 +177,7 @@ def run_backtest(symbol: str, period: str = "1y", min_resolved: int = 20,
         regime = _regime_at(closes, i)
         regime_counts[regime.value] = regime_counts.get(regime.value, 0) + 1
 
-        evidence = _daily_evidence(closes, i, rng)
+        evidence = _daily_evidence(closes, i)
         fused = fusion.fuse(evidence)
         if fused["abstaining"]:
             continue
@@ -283,6 +269,8 @@ def run_backtest(symbol: str, period: str = "1y", min_resolved: int = 20,
             "required": min_resolved,
             "regime_distribution": regime_counts,
             "data_mode": data_mode.value,
+            "evidence_layers": EVIDENCE_LAYERS,
+            "not_backtested": NOT_BACKTESTED,
             "note": insufficient("backtest results", n, min_resolved)["note"],
             "predictions": resolved,
         }
@@ -321,7 +309,11 @@ def run_backtest(symbol: str, period: str = "1y", min_resolved: int = 20,
         "by_regime": regime_rows,
         "failure_categories": _failure_categories(resolved),
         "data_mode": data_mode.value,
+        "evidence_layers": EVIDENCE_LAYERS,
+        "not_backtested": NOT_BACKTESTED,
         "note": (f"Backtested over {n_days} trading days ({source}). "
+                 f"Price-momentum rule only: {', '.join(NOT_BACKTESTED)} have no "
+                 f"historical record and were not simulated. "
                  f"Accuracy is directional; error is signed-minus-expected."),
         "predictions": resolved[:200],
     }
