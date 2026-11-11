@@ -60,6 +60,7 @@ class UserPortfolio(SQLModel, table=True):
     """User portfolio inputs, budgets, and allocation recommendations."""
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: str = Field(default="", index=True)
     created_at: datetime = Field(default_factory=_utcnow, index=True)
     name: str = ""
     budget: float = 0.0
@@ -73,6 +74,7 @@ class TradeExecution(SQLModel, table=True):
     """Orders routed to paper/live brokers, plus kill-switch events."""
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: str = Field(default="", index=True)
     created_at: datetime = Field(default_factory=_utcnow, index=True)
     symbol: str = Field(index=True)
     side: str = "buy"
@@ -279,11 +281,11 @@ def get_engine():
                 return _engine
             except Exception:
                 pass  # fall through to SQLite
-        db_path = getattr(settings, "DB_PATH", "quantpulse.db") or "quantpulse.db"
+        db_path = getattr(settings, "DB_PATH", "parakh.db") or "parakh.db"
         _engine = _make_sqlite_engine(db_path)
         _engine_backend = "sqlite"
     except Exception:
-        _engine = _make_sqlite_engine("quantpulse.db")
+        _engine = _make_sqlite_engine("parakh.db")
         _engine_backend = "sqlite"
     return _engine
 
@@ -307,6 +309,7 @@ def engine_info() -> Dict[str, str]:
 def init_db() -> Dict[str, str]:
     """Create tables if missing, then apply additive migrations. Never raises."""
     try:
+        import app.parakh.models  # noqa: F401  (registers Parakh tables)
         SQLModel.metadata.create_all(get_engine())
         added = _migrate_additive()
         out = {"status": "ok", **engine_info()}
@@ -329,6 +332,9 @@ _ADDITIVE_COLUMNS: Dict[str, Dict[str, str]] = {
     "predictions": {"signal_id": "TEXT", "event_id": "TEXT", "regime": "TEXT",
                     "status": "TEXT"},
     "experiments": {"fingerprint": "TEXT", "seed": "INTEGER", "methodology": "TEXT"},
+    # Per-user scoping for the legacy portfolio/trade tables.
+    "userportfolio": {"user_id": "TEXT DEFAULT ''"},
+    "tradeexecution": {"user_id": "TEXT DEFAULT ''"},
 }
 
 _POSTGRES_SERIAL = "SERIAL PRIMARY KEY"
@@ -516,7 +522,7 @@ def get_prediction_history(limit: int = 100) -> List[Dict[str, Any]]:
         return []
 
 
-def save_portfolio(data: Dict[str, Any]) -> Dict[str, Any]:
+def save_portfolio(data: Dict[str, Any], user_id: str = "") -> Dict[str, Any]:
     """Validate + store a user portfolio input. Raises ValueError on bad input."""
     import json
     try:
@@ -530,6 +536,7 @@ def save_portfolio(data: Dict[str, Any]) -> Dict[str, Any]:
         tickers = [t.strip().upper() for t in tickers.split(",") if t.strip()]
     tickers = [str(t).upper() for t in (tickers or [])][:20]
     row = UserPortfolio(
+        user_id=user_id,
         name=str(data.get("name", ""))[:100],
         budget=budget,
         currency=str(data.get("currency", "USD"))[:8].upper(),
@@ -544,23 +551,25 @@ def save_portfolio(data: Dict[str, Any]) -> Dict[str, Any]:
         return _dump(row)
 
 
-def list_portfolios(limit: int = 50) -> List[Dict[str, Any]]:
+def list_portfolios(limit: int = 50, user_id: str = "") -> List[Dict[str, Any]]:
     try:
         limit = max(1, min(int(limit), 200))
         with Session(get_engine()) as session:
-            q = select(UserPortfolio).order_by(UserPortfolio.id.desc()).limit(limit)
+            q = (select(UserPortfolio).where(UserPortfolio.user_id == user_id)
+                 .order_by(UserPortfolio.id.desc()).limit(limit))
             return [_dump(r) for r in session.exec(q)]
     except Exception:
         return []
 
 
 def save_trade_execution(symbol: str, side: str, qty: float,
-                         order_type: str, status: str, detail: str = "") -> int:
+                         order_type: str, status: str, detail: str = "",
+                         user_id: str = "") -> int:
     """Log one routed order. Returns 1 on success, 0 on failure."""
     try:
         with Session(get_engine()) as session:
             session.add(TradeExecution(
-                symbol=str(symbol).upper(), side=str(side).lower(),
+                user_id=user_id, symbol=str(symbol).upper(), side=str(side).lower(),
                 qty=float(qty or 0), order_type=str(order_type),
                 status=str(status)[:32], detail=str(detail)[:500]))
             session.commit()
@@ -570,11 +579,13 @@ def save_trade_execution(symbol: str, side: str, qty: float,
 
 
 def list_trade_executions(limit: int = 100,
-                          symbol: Optional[str] = None) -> List[Dict[str, Any]]:
+                          symbol: Optional[str] = None,
+                          user_id: str = "") -> List[Dict[str, Any]]:
     try:
         limit = max(1, min(int(limit), 500))
         with Session(get_engine()) as session:
-            q = select(TradeExecution).order_by(TradeExecution.id.desc()).limit(limit)
+            q = (select(TradeExecution).where(TradeExecution.user_id == user_id)
+                 .order_by(TradeExecution.id.desc()).limit(limit))
             rows = [_dump(r) for r in session.exec(q)]
         if symbol:
             rows = [r for r in rows if r["symbol"] == symbol.upper()]

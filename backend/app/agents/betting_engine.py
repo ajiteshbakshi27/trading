@@ -6,7 +6,6 @@ BET AGAINST (fade): crowd euphoria (>90% bullish) collides with
 """
 from __future__ import annotations
 from typing import Dict, List
-import random
 
 
 def build_signal(symbol: str, bullish_pct: float, sentiment: float,
@@ -29,11 +28,11 @@ def build_signal(symbol: str, bullish_pct: float, sentiment: float,
     elif aligned_bull or (quantum_edge > 0.05 and ofi_norm > 0):
         direction, stype = "LONG", "BET_FOR"
         conf = min(0.95, 0.55 + sentiment * 0.2 + ofi_norm * 0.2 + quantum_edge)
-        rationale = f"Sentiment {sentiment:+.2f} aligned with OFI {ofi_norm:+.2f}; quantum edge {quantum_edge:+.2f}."
+        rationale = f"Sentiment {sentiment:+.2f} aligned with order flow {ofi_norm:+.2f}."
     elif aligned_bear or (quantum_edge < -0.05 and ofi_norm < 0):
         direction, stype = "SHORT", "BET_FOR"
         conf = min(0.95, 0.55 + abs(sentiment) * 0.2 + abs(ofi_norm) * 0.2 + abs(quantum_edge))
-        rationale = f"Bearish alignment: sentiment {sentiment:+.2f}, OFI {ofi_norm:+.2f}, edge {quantum_edge:+.2f}."
+        rationale = f"Bearish alignment: sentiment {sentiment:+.2f}, order flow {ofi_norm:+.2f}."
     else:
         direction, stype = "FLAT", "NO_BET"
         conf = 0.35

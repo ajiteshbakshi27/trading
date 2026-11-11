@@ -5,22 +5,27 @@ and liquidates via Alpaca (mock-safe). Live auto-arm wires to broker
 equity in Phase 5+; manual + evaluate endpoints work now.
 """
 from __future__ import annotations
-import threading
 from typing import List, Dict, Any
 
-_lock = threading.Lock()
-_halted = False
-_trip_info: Dict[str, Any] = {}
+from app.core import state_store
+
+# Kill-switch state lives in the shared store (Redis when configured), so a
+# trip survives restarts and is visible to every worker.
+_KEY = "kill_switch"
+
+
+def _read() -> Dict[str, Any]:
+    return state_store.get_json(_KEY, {"halted": False, "trip": {}}) or {
+        "halted": False, "trip": {}}
 
 
 def is_halted() -> bool:
-    with _lock:
-        return _halted
+    return bool(_read().get("halted"))
 
 
 def status() -> Dict[str, Any]:
-    with _lock:
-        return {"halted": _halted, "trip": dict(_trip_info)}
+    st = _read()
+    return {"halted": bool(st.get("halted")), "trip": dict(st.get("trip") or {})}
 
 
 def evaluate(equity_curve: List[float], var_95: float = 0.0,
@@ -41,21 +46,16 @@ def evaluate(equity_curve: List[float], var_95: float = 0.0,
 
 def trip(reason: str, drawdown_pct: float = 0.0) -> Dict[str, Any]:
     """Latch the halt flag and record why. Idempotent."""
-    global _halted
-    with _lock:
-        _halted = True
-        _trip_info.update({"reason": reason, "drawdown_pct": drawdown_pct,
-                           "type": "KILL_SWITCH_TRIGGERED"})
-        return {"halted": True, "trip": dict(_trip_info)}
+    info = {"reason": reason, "drawdown_pct": drawdown_pct,
+            "type": "KILL_SWITCH_TRIGGERED"}
+    state_store.set_json(_KEY, {"halted": True, "trip": info})
+    return {"halted": True, "trip": dict(info)}
 
 
 def reset() -> Dict[str, Any]:
     """Clear the halt flag (manual re-arm)."""
-    global _halted
-    with _lock:
-        _halted = False
-        _trip_info.clear()
-        return {"halted": False}
+    state_store.set_json(_KEY, {"halted": False, "trip": {}})
+    return {"halted": False}
 
 
 def liquidate(alpaca_client) -> Dict[str, Any]:

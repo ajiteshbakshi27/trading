@@ -1,0 +1,5 @@
+# Parakh — optional extras. Not needed to run the product.
+# pip install -r requirements.txt -r requirements-optional.txt
+alpaca-py>=0.16.0          # US paper trading (Labs)
+pennylane>=0.34.0          # QAOA experiment (Labs only)
+pennylane-lightning>=0.34.0

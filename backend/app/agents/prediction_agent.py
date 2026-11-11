@@ -5,7 +5,6 @@ against Quantum model fair odds to flag mispricings.
 Mock feed included so UI works without API keys.
 """
 from __future__ import annotations
-import random
 from typing import List, Dict
 
 MOCK_MARKETS = [
@@ -24,16 +23,23 @@ MOCK_MARKETS = [
 ]
 
 
-def quantum_fair_prob(crowd_prob: float, ofi_norm: float = 0.0,
-                      sentiment: float = 0.0, seed_jitter: bool = True) -> float:
-    """
-    Toy quantum-fair-value: crowd prob adjusted by microstructure (OFI)
-    and debiased from sentiment extremes (fade hype).
+def model_fair_prob(crowd_prob: float, ofi_norm: float = 0.0,
+                    sentiment: float = 0.0) -> float:
+    """Heuristic fair probability: crowd probability adjusted by order flow
+    and de-biased away from sentiment extremes (fade hype).
+
+    HONESTY NOTE: this is a hand-set linear heuristic, not a quantum or
+    fitted model. It was previously named ``quantum_fair_prob`` and added
+    random noise; both were removed. Output is deterministic.
     """
     q = crowd_prob + 0.15 * ofi_norm - 0.10 * sentiment
-    if seed_jitter:
-        q += random.gauss(0, 0.02)
     return round(float(min(0.97, max(0.03, q))), 3)
+
+
+#: Backwards-compatible alias (old name). Prefer ``model_fair_prob``.
+def quantum_fair_prob(crowd_prob: float, ofi_norm: float = 0.0,
+                      sentiment: float = 0.0, seed_jitter: bool = False) -> float:
+    return model_fair_prob(crowd_prob, ofi_norm, sentiment)
 
 
 def find_edges(markets: List[Dict], min_edge: float = 0.07) -> List[Dict]:
@@ -58,11 +64,13 @@ class PredictionAgent:
         ofi_map, sent_map = ofi_map or {}, sent_map or {}
         mkts = []
         for m in MOCK_MARKETS:
-            # Drift crowd prob slightly each poll for "live" feel
-            cp = min(0.97, max(0.03, m["crowd_prob"] + random.gauss(0, 0.01)))
-            qp = quantum_fair_prob(cp, random.uniform(-0.4, 0.4),
-                                   random.uniform(-0.5, 0.5))
-            mkts.append({**m, "crowd_prob": round(cp, 3), "quantum_prob": qp})
+            # Static example markets (no live Kalshi/Polymarket feed yet).
+            # No fake "live" drift: the numbers are labelled MOCK.
+            cp = m["crowd_prob"]
+            qp = model_fair_prob(cp, float(ofi_map.get(m["id"], 0.0)),
+                                 float(sent_map.get(m["id"], 0.0)))
+            mkts.append({**m, "crowd_prob": round(cp, 3), "quantum_prob": qp,
+                         "model_prob": qp, "data_mode": "mock"})
         return mkts
 
     def analyze(self, markets: List[Dict]) -> Dict:

@@ -13,8 +13,8 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # App Settings
-    APP_NAME: str = "QuantPulse AI"
-    APP_VERSION: str = "1.0.0"
+    APP_NAME: str = "Parakh"
+    APP_VERSION: str = "2.0.0"
     DEBUG: bool = Field(default=False, description="Enable debug mode")
     ENVIRONMENT: str = Field(default="development", description="Environment: development, staging, production")
 
@@ -76,7 +76,18 @@ class Settings(BaseSettings):
     SUPABASE_URL: Optional[str] = Field(default=None, description="Supabase project URL")
     SUPABASE_ANON_KEY: Optional[str] = Field(default=None, description="Supabase anon public key")
     SUPABASE_SERVICE_KEY: Optional[str] = Field(default=None, description="Supabase service role key (server only)")
-    DB_PATH: str = Field(default="quantpulse.db", description="SQLite file when DATABASE_URL is unset")
+    SUPABASE_JWT_SECRET: Optional[str] = Field(default=None, description="Legacy HS256 JWT secret (only if the project still uses it)")
+
+    # Parakh product settings
+    ANTHROPIC_API_KEY: Optional[str] = Field(default=None, description="Claude API key for the copilot + thesis parser")
+    CLAUDE_MODEL: str = Field(default="claude-opus-5-5", description="Claude model id")
+    KITE_API_KEY: Optional[str] = Field(default=None, description="Zerodha Kite Connect API key")
+    KITE_API_SECRET: Optional[str] = Field(default=None, description="Zerodha Kite Connect API secret")
+    TOKEN_ENCRYPTION_KEY: Optional[str] = Field(default=None, description="Fernet key that encrypts stored broker tokens")
+    ADMIN_EMAILS: Annotated[List[str], NoDecode] = Field(default=[], description="Emails allowed to use operator endpoints (broker orders, kill switch)")
+    CRON_SECRET: Optional[str] = Field(default=None, description="Shared secret for scheduled jobs (hype alerts, auto-resolve)")
+    PUBLIC_APP_URL: str = Field(default="http://localhost:3000", description="Frontend URL used in share links + broker redirects")
+    DB_PATH: str = Field(default="parakh.db", description="SQLite file when DATABASE_URL is unset")
 
     # Quantum Computing
     PENNYLANE_DEVICE: str = Field(default="default.qubit", description="PennyLane device (default.qubit, lightning.qubit)")
@@ -111,6 +122,13 @@ class Settings(BaseSettings):
         description="Allowed CORS origins (JSON list or comma-separated)"
     )
 
+    @field_validator("ADMIN_EMAILS", mode="before")
+    @classmethod
+    def _split_admins(cls, v):
+        if isinstance(v, str):
+            return [e.strip().lower() for e in v.split(",") if e.strip()]
+        return [str(e).lower() for e in (v or [])]
+
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod
     def _split_cors(cls, v):
@@ -138,6 +156,8 @@ class Settings(BaseSettings):
         "TWITTER_BEARER_TOKEN", "TWITTER_API_KEY", "TWITTER_API_SECRET",
         "TWITTER_ACCESS_TOKEN", "TWITTER_ACCESS_SECRET", "POLYMARKET_API_KEY",
         "KALSHI_API_KEY", "KALSHI_PRIVATE_KEY", "DATABASE_URL", "SUPABASE_URL",
+        "SUPABASE_JWT_SECRET", "ANTHROPIC_API_KEY", "KITE_API_KEY", "KITE_API_SECRET",
+        "TOKEN_ENCRYPTION_KEY", "CRON_SECRET",
         "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_KEY", "TELEGRAM_BOT_TOKEN",
         "TELEGRAM_CHAT_ID", "DISCORD_WEBHOOK_URL", "COPILOT_LLM_URL", "COPILOT_LLM_KEY",
         mode="before",
@@ -196,7 +216,17 @@ class Settings(BaseSettings):
             "prediction": "live" if (self.KALSHI_API_KEY or self.POLYMARKET_API_KEY) else "mock",
             "supabase": "live" if self.has_supabase else "mock",
             "alerts": "live" if self.has_alerts else "mock",
+            "claude": "live" if self.ANTHROPIC_API_KEY else "off",
+            "zerodha_kite": "live" if (self.KITE_API_KEY and self.KITE_API_SECRET) else "off",
         }
+
+    @property
+    def auth_configured(self) -> bool:
+        return bool(self.SUPABASE_URL or self.SUPABASE_JWT_SECRET)
+
+    @property
+    def is_production(self) -> bool:
+        return self.ENVIRONMENT.lower() in ("production", "prod")
 
 
 @lru_cache()

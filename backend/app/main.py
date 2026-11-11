@@ -9,7 +9,7 @@ import random
 import time
 from contextlib import asynccontextmanager
 from typing import Dict, List, Optional, Any
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException
+from fastapi import Depends, FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -23,11 +23,12 @@ _RATE_LIMITED = {"/api/allocate", "/api/trade", "/api/kill-switch",
                  "/api/information/events/detect"}
 _RATE_WINDOW_S = 60
 _RATE_MAX = 20
-_BUCKETS: Dict[str, List[float]] = {}
 # Alpha Vantage refresh budget per snapshot tick (keeps cold starts fast).
 _AV_REFRESH_PER_TICK = 2
 
 from app.config import get_settings, MOCK_DATA_CONFIG
+from app.core import state_store
+from app.core.auth import User, require_admin, require_user
 from app.quantum_hft.hft_engine import HFTManager, VWAPExecutor, TWAPExecutor
 from app.quantum_hft.qaoa_optimizer import quantum_portfolio_optimize
 from app.quantum_hft.quantum_risk import risk_report
@@ -49,6 +50,7 @@ from app.api import (demo, divergence, event_transmission, experiments,
                      indian_stocks, information, monte_carlo, news, paper,
                      prediction_autopsy, reddit_extractor, research,
                      research_backtest, sentiment_divergence, thesis)
+from app.api import parakh as parakh_api
 from app.api.context import ResearchContext
 from app.services.fusion import FUSION_PRIORS, MODEL_VERSION as FUSION_VERSION
 settings = get_settings()
@@ -103,6 +105,7 @@ app.include_router(monte_carlo.router)
 app.include_router(sentiment_divergence.router)
 app.include_router(reddit_extractor.router)
 app.include_router(indian_stocks.router)
+app.include_router(parakh_api.router)
 
 # Phase 2: create tables (Postgres when DATABASE_URL works, else SQLite).
 # Never blocks startup: failures degrade to in-memory-safe fallbacks.
@@ -122,8 +125,8 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed,
     allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS"],
-    allow_headers=["Content-Type", "Authorization"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Parakh-Dev-User"],
     max_age=600,
 )
 
@@ -153,18 +156,13 @@ async def rate_limit(request, call_next):
     if not limited:
         return await call_next(request)
     ip = request.client.host if request.client else "unknown"
-    now = time.monotonic()
-    bucket = _BUCKETS.setdefault(ip, [])
-    cutoff = now - _RATE_WINDOW_S
-    while bucket and bucket[0] < cutoff:
-        bucket.pop(0)
-    if len(bucket) >= _RATE_MAX:
+    # Shared store: Redis when REDIS_URL works (multi-worker safe), else memory.
+    if not state_store.rate_hit(f"{ip}:{path}", _RATE_WINDOW_S, _RATE_MAX):
         return JSONResponse(
             status_code=429,
             content={"detail": "Rate limit exceeded. Slow down."},
             headers={"Retry-After": str(int(_RATE_WINDOW_S))},
         )
-    bucket.append(now)
     return await call_next(request)
 
 BASE_PRICES = {"AAPL": 232.0, "MSFT": 428.0, "NVDA": 131.0, "TSLA": 248.0,
@@ -361,7 +359,10 @@ def snapshot():
         sig_input.append({"symbol": s, "bullish_pct": agg["bullish_pct"],
                           "sentiment": agg["sentiment"],
                           "ofi_norm": b["ofi"]["ofi_norm"],
-                          "quantum_edge": random.uniform(-0.08, 0.08),
+                          # No quantum model feeds live signals: the old
+                          # random.uniform() placeholder was removed because a
+                          # random input contradicts the integrity contract.
+                          "quantum_edge": 0.0,
                           "price": b["mid"]})
     signals = bet_engine.generate(sig_input)
     # Phase 2: persist signals + prediction edges (best-effort, never breaks feed).
@@ -409,7 +410,7 @@ def backtest(symbol: str = "NVDA", periods: int = 252, series: bool = False):
 
 
 @app.post("/api/trade")
-def trade(req: OrderRequest):
+def trade(req: OrderRequest, user: User = Depends(require_admin)):
     if req.qty <= 0:
         raise HTTPException(status_code=422, detail="qty must be > 0")
     if req.order_type not in ("market", "limit"):
@@ -429,14 +430,15 @@ def trade(req: OrderRequest):
                                       tax_rate=s.TAX_RATE_GAINS)
         db.save_trade_execution(req.symbol, side, float(req.qty), req.order_type,
                                 str(res.get("status", "")),
-                                str(res.get("id") or res.get("error", "")))
+                                str(res.get("id") or res.get("error", "")),
+                                user_id=user.id)
     except Exception:
         pass
     return res
 
 
 @app.get("/api/account")
-def account():
+def account(user: User = Depends(require_admin)):
     return _alpaca_client().account()
 
 
@@ -483,17 +485,18 @@ def log_signal(req: SignalLogRequest):
 
 
 @app.get("/api/portfolio")
-def list_portfolio(limit: int = Query(default=50, ge=1, le=200)):
+def list_portfolio(limit: int = Query(default=50, ge=1, le=200),
+                   user: User = Depends(require_user)):
     """Fetch saved user portfolio inputs."""
-    return {"portfolios": db.list_portfolios(limit=limit),
+    return {"portfolios": db.list_portfolios(limit=limit, user_id=user.id),
             "backend": db.engine_info().get("backend")}
 
 
 @app.post("/api/portfolio")
-def save_portfolio(req: PortfolioRequest):
+def save_portfolio(req: PortfolioRequest, user: User = Depends(require_user)):
     """Save a user portfolio input (budget must be > 0)."""
     try:
-        row = db.save_portfolio(req.model_dump())
+        row = db.save_portfolio(req.model_dump(), user_id=user.id)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
     return {"portfolio": row}
@@ -574,16 +577,17 @@ def predictions_history(limit: int = Query(default=100, ge=1, le=1000)):
 
 
 @app.post("/api/portfolio/save")
-def save_portfolio_alias(req: PortfolioRequest):
+def save_portfolio_alias(req: PortfolioRequest, user: User = Depends(require_user)):
     """Alias of POST /api/portfolio (spec endpoint name)."""
-    return save_portfolio(req)
+    return save_portfolio(req, user)
 
 
 @app.get("/api/trades")
 def trade_history(limit: int = Query(default=100, ge=1, le=500),
-                  symbol: Optional[str] = None):
+                  symbol: Optional[str] = None,
+                  user: User = Depends(require_user)):
     """Routed-order + kill-switch event log."""
-    return {"trades": db.list_trade_executions(limit=limit, symbol=symbol),
+    return {"trades": db.list_trade_executions(limit=limit, symbol=symbol, user_id=user.id),
             "backend": db.engine_info().get("backend")}
 
 
@@ -603,7 +607,7 @@ def kill_status():
 
 
 @app.post("/api/kill-switch")
-def kill_switch(req: KillSwitchRequest):
+def kill_switch(req: KillSwitchRequest, user: User = Depends(require_admin)):
     """trip (halts signals + liquidates) | reset (re-arm) | evaluate (dry-run)."""
     s = _fresh_settings()
     if req.action == "reset":
