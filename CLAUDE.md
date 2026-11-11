@@ -69,3 +69,11 @@ E2E clicked through all pages in Playwright with zero console errors.
 ## Run locally
 backend: `cd backend && pip install -r requirements-dev.txt && uvicorn app.main:app --reload --port 8000`
 frontend: `cd frontend && npm install && npm run dev` → http://localhost:3000 (dev mode needs no keys)
+
+## Session 2 log (2026-11-11)
+- Bundle applied (branch `claude/project-review-improvements-oz3vbw`); owner's local Indian-stock
+  edits saved on `backup/local-edits-before-parakh` and merged in. Backend tests: 94 pass,
+  1 fails only because `PyJWT` isn't installed locally (`pip install -r backend/requirements.txt`).
+- Rename finished: folder is now `D:\Parakh\parakh`; `design-system/parakh`; `backend/parakh.db`;
+  remaining code/doc/.env mentions replaced. GitHub repo NOT renamed (still `ajiteshbakshi27/trading`).
+- `git push` was blocked by the permission system; still NOT pushed.
