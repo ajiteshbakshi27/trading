@@ -69,8 +69,8 @@ export default function ChartsPage() {
         <h1 className="text-xl font-bold">Candlestick Charts + Agent Overlays</h1>
         {info?.source && (
           <span className={`rounded-full px-2.5 py-0.5 text-xs ${
-            info.source === "alphavantage" ? "bg-emerald-500/10 text-emerald-300" : "bg-white/5 text-slate-400"}`}>
-            {info.source === "alphavantage" ? "● Live (Alpha Vantage)" : "Simulator"}
+            info.source === "simulator" ? "bg-white/5 text-slate-400" : "bg-emerald-500/10 text-emerald-300"}`}>
+            {info.source === "simulator" ? "Simulator" : `● Live (${info.source === "yahoo-finance" ? "Yahoo Finance" : "Alpha Vantage"})`}
           </span>
         )}
         <div className="ml-auto flex items-center gap-2">

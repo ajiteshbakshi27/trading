@@ -218,27 +218,48 @@ def _av() -> Optional[md.AlphaVantageClient]:
 
 def _apply_live_quotes(books: List[Dict]) -> Dict[str, Any]:
     """Overlay cached live quotes onto simulated books (mid = live price).
-    Skips books already covered by the real-time stream (saves AV budget).
-    Returns usage report. Never raises; failures keep simulator mids."""
+    Priority: Alpha Vantage first, then Yahoo Finance (no key needed) for
+    books AV didn't cover. Skips books already covered by the real-time
+    stream. Returns usage report. Never raises; failures keep simulator mids."""
     report: Dict[str, Any] = {"mode": "mock_simulator", "live_symbols": []}
     try:
         client = _av()
-        if client is None:
-            return report
-        uncovered = [b["symbol"] for b in books if "stream" not in b]
-        # Cap refresh work per tick: a cold snapshot must stay fast. Symbols
-        # not refreshed this tick keep the simulator mid (60s cache covers
-        # the rest on the next passes).
-        quotes = client.quotes(uncovered, limit=_AV_REFRESH_PER_TICK)
-        for b in books:
-            q = quotes.get(b["symbol"])
-            if q:
-                md.recenter_book(b, q["price"])
-                b["live"] = q
-                report["live_symbols"].append(b["symbol"])
-        if report["live_symbols"]:
-            report["mode"] = "alphavantage"
-        report["usage"] = client.usage()
+        if client is not None:
+            uncovered = [b["symbol"] for b in books if "stream" not in b]
+            # Cap refresh work per tick: a cold snapshot must stay fast. Symbols
+            # not refreshed this tick keep the simulator mid (60s cache covers
+            # the rest on the next passes).
+            quotes = client.quotes(uncovered, limit=_AV_REFRESH_PER_TICK)
+            for b in books:
+                q = quotes.get(b["symbol"])
+                if q:
+                    md.recenter_book(b, q["price"])
+                    b["live"] = q
+                    report["live_symbols"].append(b["symbol"])
+            if report["live_symbols"]:
+                report["mode"] = "alphavantage"
+            report["usage"] = client.usage()
+    except Exception:
+        pass
+    # Yahoo Finance covers whatever AV missed (or everything when no AV key).
+    # 60 s internal cache keeps per-tick cost near zero.
+    try:
+        from app.services import yahoo_finance as yfmod
+        still_sim = [b["symbol"] for b in books
+                     if "stream" not in b and "live" not in b]
+        if still_sim:
+            for q in yfmod.get_batch(still_sim):
+                b = next((x for x in books if x["symbol"] == q["symbol"]), None)
+                if b and (q.get("price") or 0) > 0:
+                    md.recenter_book(b, q["price"])
+                    b["live"] = {"price": q["price"],
+                                 "change_pct": q.get("change_pct", 0.0),
+                                 "source": "yahoo-finance"}
+                    report["live_symbols"].append(b["symbol"])
+            if report["live_symbols"] and report["mode"] == "mock_simulator":
+                report["mode"] = "yahoo-finance"
+            elif report["live_symbols"]:
+                report["mode"] += "+yahoo-finance"
     except Exception:
         pass
     return report
@@ -681,6 +702,31 @@ def candles(symbol: str = "NVDA", n: int = Query(default=120, ge=20, le=500)):
                     pass
                 return {"symbol": sym, "candles": live, "markers": markers,
                         "source": "alphavantage"}
+    except Exception:
+        pass
+    # Yahoo Finance daily history (no key) before the seeded simulator.
+    # This is what the dashboard quotes already use — charts were the one
+    # endpoint still AV-or-simulator, hence "old data" once AV quota ran out.
+    try:
+        from app.services import yahoo_finance as yfmod
+        yh = yfmod.get_candles(sym, n=n)
+        if yh and len(yh) >= 20:
+            markers = []
+            try:
+                for j, s in enumerate(db.get_signal_history(limit=200, symbol=sym)[:8]):
+                    idx = len(yh) - 1 - j * max(1, len(yh) // 10)
+                    if idx < 0:
+                        break
+                    is_buy = s.get("direction") == "LONG"
+                    markers.append({"time": yh[idx]["time"],
+                                    "position": "belowBar" if is_buy else "aboveBar",
+                                    "color": "#22C55E" if is_buy else "#EF4444",
+                                    "shape": "arrowUp" if is_buy else "arrowDown",
+                                    "text": f"{s.get('signal_type', '')} {s.get('confidence', 0)}"})
+            except Exception:
+                pass
+            return {"symbol": sym, "candles": yh, "markers": markers,
+                    "source": "yahoo-finance"}
     except Exception:
         pass
     base = BASE_PRICES.get(sym, 100.0)

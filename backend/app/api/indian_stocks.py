@@ -27,11 +27,13 @@ def stock(symbol: str = Query(..., min_length=1, description="NSE/BSE ticker")):
     data = isa.get_stock_data(symbol)
     live = data is not None
     mode = DataMode.LIVE if live else DataMode.MOCK
+    source = (data.get("source", "indian-stock-api") if isinstance(data, dict)
+              else "unavailable") if live else "unavailable"
     return {
         "symbol": isa.normalize_symbol(symbol),
         "data": data,
         "data_mode": mode.value,
-        "source": "indian-stock-api" if live else "unavailable",
+        "source": source,
         **mode_block(mode),
     }
 
@@ -42,12 +44,13 @@ def batch(symbols: str = Query(..., description="Comma-separated tickers")):
     data = isa.get_batch_stocks(syms)
     live = len(data) > 0
     mode = DataMode.LIVE if live else DataMode.MOCK
+    srcs = sorted({d.get("source", "?") for d in data if isinstance(d, dict)})
     return {
         "symbols": [isa.normalize_symbol(s) for s in syms],
         "results": data,
         "count": len(data),
         "data_mode": mode.value,
-        "source": "indian-stock-api" if live else "unavailable",
+        "source": ",".join(srcs) if live else "unavailable",
         **mode_block(mode),
     }
 
@@ -57,25 +60,34 @@ def search(q: str = Query(..., min_length=1, description="Name or ticker query")
     data = isa.search_stocks(q)
     live = len(data) > 0
     mode = DataMode.LIVE if live else DataMode.MOCK
+    srcs = sorted({d.get("source", "?") for d in data if isinstance(d, dict)})
     return {
         "query": q,
         "results": data,
         "count": len(data),
         "data_mode": mode.value,
-        "source": "indian-stock-api" if live else "unavailable",
+        "source": ",".join(srcs) if live else "unavailable",
         **mode_block(mode),
     }
 
 
 @router.get("/status")
 def status():
-    """Upstream reachability probe (cheap: searches one well-known ticker)."""
-    probe = isa.search_stocks("RELIANCE")
-    reachable = len(probe) > 0
+    """Probe both live paths: upstream server and native Yahoo provider."""
+    upstream_ok = isa._get("/search", {"q": "RELIANCE"}) is not None
+    native_ok = False
+    try:
+        from app.services import indian_native
+        native_ok = indian_native.get_quote("RELIANCE.NS") is not None
+    except Exception:
+        pass
+    reachable = upstream_ok or native_ok
     mode = DataMode.LIVE if reachable else DataMode.MOCK
     return {
         "base_url": isa.base_url(),
         "reachable": reachable,
+        "upstream_server": upstream_ok,
+        "native_yahoo": native_ok,
         "data_mode": mode.value,
         **mode_block(mode),
     }
