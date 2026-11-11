@@ -6,7 +6,7 @@
 
 ---
 
-**Project:** QuantPulse AI
+**Project:** Parakh
 **Generated:** 2026-09-25 13:40:54
 **Category:** Coding Bootcamp
 **Design Dials:** Variance 7/10 (Balanced / Modern) | Motion 9/10 (Complex) | Density 4/10 (Standard)

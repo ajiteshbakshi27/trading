@@ -1,6 +1,6 @@
 # Landing Page Overrides
 
-> **PROJECT:** QuantPulse AI
+> **PROJECT:** Parakh
 > **Generated:** 2026-09-25 13:56:49
 > **Page Type:** Landing / Marketing
 

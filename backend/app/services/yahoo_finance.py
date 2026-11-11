@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Generic Yahoo Finance quote provider (no key required).
+Parakh — Generic Yahoo Finance quote provider (no key required).
 
 Used for US tickers (NASDAQ/NYSE) and anything else Yahoo resolves. NSE/BSE
 traffic goes through :mod:`app.services.indian_native`, which shapes these

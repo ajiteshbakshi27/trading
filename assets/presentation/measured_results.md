@@ -1,4 +1,4 @@
-# QuantPulse AI — Presentation Measured Results
+# Parakh — Presentation Measured Results
 
 All numbers below are **measured**, not estimated. Data source: yfinance daily prices.
 Label: **BACKTEST** (historical replay, not live trading).

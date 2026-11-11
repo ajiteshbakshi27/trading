@@ -94,7 +94,7 @@ with sync_playwright() as pw:
     page.click("button[type=submit]")
     page.wait_for_timeout(300)
     r["bad_email_error"] = page.locator("#email-error").inner_text()
-    page.fill("#email", "trader@quantpulse.ai")
+    page.fill("#email", "trader@parakh.test")
     page.click("button[type=submit]")
     try:
         page.wait_for_url("**/dashboard", timeout=15000)
@@ -138,7 +138,7 @@ with sync_playwright() as pw:
     sp.click("button[type=submit]")
     sp.wait_for_timeout(300)
     sp.screenshot(path=str(OUT / "auth-signup-errors.png"))
-    sp.fill("#email", "new@quantpulse.ai")
+    sp.fill("#email", "new@parakh.test")
     sp.fill("#password", "short")
     sp.check("input[name=risk]")
     sp.click("button[type=submit]")
@@ -195,7 +195,7 @@ with sync_playwright() as pw:
     fp = f.new_page()
     fp.goto(f"{BASE}/forgot-password", wait_until="domcontentloaded")
     ready(fp)
-    fp.fill("#email", "trader@quantpulse.ai")
+    fp.fill("#email", "trader@parakh.test")
     fp.click("button[type=submit]")
     try:
         fp.wait_for_selector("text=Check your email", timeout=20000)

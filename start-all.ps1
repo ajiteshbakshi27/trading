@@ -1,4 +1,4 @@
-# QuantPulse AI — start everything at once.
+# Parakh — start everything at once.
 # Right-click -> "Run with PowerShell" (or: powershell -ExecutionPolicy Bypass -File start-all.ps1)
 # Leaves 3 windows open: backend :8000, tunnel, frontend :3000. Close them to stop.
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path

@@ -17,7 +17,7 @@ export default function TerminalFrame() {
           <span className="h-2 w-2 rounded-full bg-amber-400/70" />
           <span className="h-2 w-2 rounded-full bg-emerald-500/70" />
         </div>
-        <span className="tnum text-[11px] text-fg-muted">quantpulse · live desk</span>
+        <span className="tnum text-[11px] text-fg-muted">parakh · live desk</span>
         <span className="flex items-center gap-1.5 text-[11px] text-emerald-400">
           <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-500" /> streaming
         </span>

@@ -1,4 +1,4 @@
-# Security notes — QuantPulse AI
+# Security notes — Parakh
 
 ## Rotate any key that has been pasted into a chat, commit, or log
 
@@ -35,7 +35,7 @@ Rules that follow from this:
 
 ```powershell
 # backend tests
-cd quantpulse-ai/backend
+cd parakh/backend
 python -m py_compile app/main.py app/config.py app/database.py
 
 # hardening smoke (server must be running)

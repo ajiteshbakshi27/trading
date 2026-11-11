@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 SUBREDDITS = ["wallstreetbets", "stocks", "options", "pennystocks"]
-UA = {"User-Agent": "ParakhAI/1.0 (research; contact: trader@quantpulse.ai)"}
+UA = {"User-Agent": "ParakhAI/1.0 (research)"}
 
 #: Cache TTL — Reddit rate-limits unauthenticated requests hard.
 _TTL_S = 120.0

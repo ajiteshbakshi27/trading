@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Native NSE/BSE provider (no sidecar server required).
+Parakh — Native NSE/BSE provider (no sidecar server required).
 
 This is the same data source the ``0xramm/Indian-Stock-Market-API`` repo
 wraps — Yahoo Finance's public endpoints — called directly from our backend:
@@ -26,7 +26,7 @@ import httpx
 #: Yahoo public search (no auth needed, same endpoint the upstream repo uses).
 _SEARCH_URL = "https://query1.finance.yahoo.com/v1/finance/search"
 
-_UA = {"User-Agent": "QuantPulseAI/1.0 (+research)"}
+_UA = {"User-Agent": "ParakhAI/1.0 (+research)"}
 
 
 def _split(symbol: str) -> tuple:

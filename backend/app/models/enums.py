@@ -95,7 +95,7 @@ _LAYER_ORDER = {
 }
 
 
-#: Visual signature (see design-system/quantpulse-ai/MASTER.md). One accent
+#: Visual signature (see design-system/parakh/MASTER.md). One accent
 #: per layer, reused by every graph, card and timeline in the product.
 LAYER_ACCENT = {
     Layer.EVENT: "information",
