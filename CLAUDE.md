@@ -3,6 +3,10 @@
 Read this first in every session. It records what the owner and Claude decided
 and where the work stands. Keep it updated at the end of each session.
 
+**Starting a new session? Open `NEXT_SESSION.md` first.** It has the owner's
+exact instructions, what's done, and the first steps (apply the bundle if needed,
+then push the branch, which the owner explicitly asked Claude to do).
+
 ## The product (decided)
 - **Name:** Parakh (परख = "to test / judge the worth of"). Formerly "QuantPulse AI".
   Tagline: "Test your trade before the market does."
