@@ -43,3 +43,8 @@ def test_trade_rejects_bad_orders():
     assert client.post("/api/trade", json={"symbol": "AAPL", "qty": 0}).status_code == 422
     assert client.post("/api/trade", json={
         "symbol": "AAPL", "qty": 1, "order_type": "limit"}).status_code == 422
+
+
+def test_option_lots_flags_unverified_sizes():
+    body = client.get("/api/parakh/options/lots").json()
+    assert body["lots"]["NIFTY"] == 65 and body["unverified"] == ["SENSEX"]

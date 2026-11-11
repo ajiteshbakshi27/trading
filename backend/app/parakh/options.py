@@ -22,6 +22,8 @@ from scipy.stats import norm
 
 RISK_FREE = 0.065  # approx. Indian 91-day T-bill yield; editable per request
 DEFAULT_LOTS = {"NIFTY": 65, "BANKNIFTY": 30, "FINNIFTY": 60, "MIDCPNIFTY": 120, "SENSEX": 20}
+#: BSE contracts could not be checked against an official source.
+UNVERIFIED_LOTS = frozenset({"SENSEX"})
 
 
 def bs_price(spot: float, strike: float, t: float, vol: float, kind: str, r: float = RISK_FREE) -> float:

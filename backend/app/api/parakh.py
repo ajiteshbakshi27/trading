@@ -278,7 +278,9 @@ def options_analyse(req: OptionsRequest):
 
 @router.get("/options/lots")
 def option_lots():
-    return {"lots": options.DEFAULT_LOTS, "note": "Defaults only — confirm the current NSE lot size."}
+    return {"lots": options.DEFAULT_LOTS,
+            "unverified": sorted(options.UNVERIFIED_LOTS),
+            "note": "Defaults only — confirm the current exchange lot size."}
 
 
 # ----------------------------------------------------------- backtest ------

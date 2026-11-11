@@ -87,3 +87,8 @@ frontend: `cd frontend && npm install && npm run dev` → http://localhost:3000 
   MIDCPNIFTY 120 (were 75/35/65/140). SENSEX 20 unverified. Re-check each NSE circular.
 - PyJWT installed; `npm install` run (was missing `@supabase/supabase-js`); full `npm run build` passes.
   Caches for pip/npm are on `D:\Parakh\.pip-cache` and `.npm-cache`. Tests: 113 pass.
+- Fixed a flaky tournament test: the labelled demo (`allow_synthetic=True`) must be offline and purely
+  synthetic; it had started using live prices. Regression test added. `/api/parakh/options/lots` now returns
+  `unverified: ["SENSEX"]` (BSE blocks automated lookups; check the BSE circular by hand).
+- E2E on live data verified: idea check (HDFCBANK, `data_mode: live`, "recommend" appears only in the
+  disclaimer) and strategy backtest (RELIANCE, live). Tests: 115 pass.

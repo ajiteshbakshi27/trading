@@ -90,8 +90,8 @@ def build_observation_set(symbols: Sequence[str], n: int = 60,
                           ) -> Tuple[List[Dict[str, Any]], WindowSpec]:
     """Assemble the experiment dataset.
 
-    Order: stored evidence -> real price history (momentum only) -> synthetic
-    (only if `allow_synthetic`, used by the labelled demo) -> empty.
+    Order: stored evidence -> synthetic if `allow_synthetic` (labelled demo, offline)
+    -> otherwise real price history (momentum only) -> empty.
     """
     from app import database as db
 
@@ -119,14 +119,16 @@ def build_observation_set(symbols: Sequence[str], n: int = 60,
         if rows:
             mode = _mode_of_rows(rows)
     price_based = False
-    if not rows:
+    if not rows and allow_synthetic:
+        # Labelled demo scenario: fully synthetic and offline, so it is
+        # deterministic and never depends on (or pretends to be) market data.
+        rows = _synthetic_observations(symbols, n=n, seed=seed)
+        mode = DataMode.SIMULATED
+    elif not rows:
         rows = _price_observations(symbols, n=n)
         if rows:
             mode = DataMode.BACKTEST
             price_based = True
-    if not rows and allow_synthetic:
-        rows = _synthetic_observations(symbols, n=n, seed=seed)
-        mode = DataMode.SIMULATED
 
     rows = rows[: n * 4]
     start = min((str(r.get("timestamp", "")) for r in rows), default=iso())

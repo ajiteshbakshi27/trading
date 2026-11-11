@@ -360,6 +360,17 @@ class TestSignalTournament:
         assert matrix.status in ("ok", "partial")
         assert len(matrix.rows) > 0
 
+    def test_synthetic_demo_never_touches_the_network(self, monkeypatch):
+        from app.models.enums import DataMode
+        from app.services import research_backtest as rb
+
+        def boom(*a, **k):
+            raise AssertionError("demo must not fetch market data")
+        monkeypatch.setattr(rb, "_load_prices", boom)
+        obs, window = signal_tournament.build_observation_set(
+            ["NVDA"], n=30, seed=7, allow_synthetic=True)
+        assert obs and window.data_mode is DataMode.SIMULATED
+
     def test_default_never_fabricates_observations(self, monkeypatch):
         from app.models.enums import DataMode
         from app.services import research_backtest as rb
