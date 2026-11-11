@@ -173,7 +173,7 @@ def _mock_posts() -> List[Dict[str, Any]]:
         ("AMZN", "$AMZN e-commerce margins surprise to the upside", 720, 55),
         ("SPY", "$SPY melt-up, everyone 100% bullish — contrarian alarm", 1540, 120),
         ("RELIANCE", "Reliance Jio IPO next? Retail bulls loading up", 3200, 250),
-        ("TATAMOTORS", "Tata Motors EV order book explodes, long term hold", 2100, 180),
+        ("TMPV", "Tata Motors PV (TMPV) order book explodes, long term hold", 2100, 180),
         ("INFY", "Infosys deal wins accelerate, IT sector bottoming?", 1800, 140),
     ]
     out = []

@@ -49,25 +49,25 @@ FALLBACK_PRICES: Dict[str, Dict[str, Any]] = {
     "AMZN":      {"price": 205.00, "change_pct": 0.7,  "currency": "USD", "exchange": "NASDAQ"},
     # Indian tickers (NSE/BSE) — INR
     "RELIANCE":  {"price": 2980.50, "change_pct": 1.4, "currency": "INR", "exchange": "NSE"},
-    "TATAMOTORS": {"price": 975.20,  "change_pct": 2.1, "currency": "INR", "exchange": "NSE"},
+    "TMPV":      {"price": 283.35,  "change_pct": -2.4, "currency": "INR", "exchange": "NSE"},
     "ADANIENT":  {"price": 3140.00, "change_pct": -0.8, "currency": "INR", "exchange": "NSE"},
     "INFY":      {"price": 1890.30, "change_pct": 0.9, "currency": "INR", "exchange": "NSE"},
-    "NIFTY50":   {"price": 25380.00, "change_pct": 0.5, "currency": "INR", "exchange": "NSE"},
+    "^NSEI":     {"price": 22779.20, "change_pct": -1.6, "currency": "INR", "exchange": "NSE"},
 }
 
-#: Default universe: US tech + Indian blue-chips + Nifty 50.
+#: Default universe: US tech + Indian blue-chips + Nifty 50 (^NSEI).
 DEFAULT_UNIVERSE: List[str] = [
     "NVDA", "TSLA", "AAPL", "AMD", "INTC", "GOOGL", "MSFT",
-    "RELIANCE", "TATAMOTORS", "ADANIENT", "INFY", "NIFTY50",
+    "RELIANCE", "TMPV", "ADANIENT", "INFY", "^NSEI",
 ]
 
-#: Map from internal symbol to display symbol (strip .BSE suffix).
+#: Map from internal symbol to display symbol (^NSEI keeps its NIFTY50 label).
 _DISPLAY_NAMES: Dict[str, str] = {
     "RELIANCE.BSE": "RELIANCE",
-    "TATAMOTORS.BSE": "TATAMOTORS",
+    "TMPV.BSE": "TMPV",
     "ADANIENT.BSE": "ADANIENT",
     "INFY.BSE": "INFY",
-    "NIFTY50": "NIFTY50",
+    "^NSEI": "NIFTY50",
 }
 
 
@@ -119,8 +119,8 @@ def _safe_float(value: Any, default: float = 0.0) -> float:
 
 
 #: Symbols served by the Indian Stock Market API (NSE/BSE universe).
-_INDIAN_SYMBOLS = frozenset({"RELIANCE", "TATAMOTORS", "ADANIENT", "INFY",
-                             "NIFTY50", "TCS", "HDFCBANK", "SBIN", "ITC",
+_INDIAN_SYMBOLS = frozenset({"RELIANCE", "TMPV", "ADANIENT", "INFY",
+                             "^NSEI", "TCS", "HDFCBANK", "SBIN", "ITC",
                              "TATASTEEL", "ONGC", "WIPRO"})
 
 
@@ -147,19 +147,24 @@ def _indian_quote(symbol: str) -> Optional[Dict[str, Any]]:
         inner = data.get(wrapper)
         if isinstance(inner, dict) and any(
                 k in inner for k in ("price", "currentPrice", "lastPrice",
-                                     "ltp", "close")):
+                                     "last_price", "ltp", "close")):
             payload = inner
             break
     price = 0.0
-    for key in ("price", "currentPrice", "lastPrice", "ltp", "close"):
+    for key in ("price", "currentPrice", "lastPrice", "last_price",
+                "ltp", "close"):
         price = _safe_float(payload.get(key), 0.0)
         if price > 0:
             break
     if price <= 0:
         return None
+    try:
+        src = str(data.get("source", "indian-stock-api"))
+    except Exception:
+        src = "indian-stock-api"
     change = 0.0
-    for key in ("percentChange", "pChange", "change_pct", "dayChangePct",
-                "perChange", "changePercent"):
+    for key in ("percentChange", "percent_change", "pChange", "change_pct",
+                "dayChangePct", "perChange", "changePercent"):
         if payload.get(key) is not None:
             change = _safe_float(payload.get(key), 0.0)
             break
@@ -171,7 +176,8 @@ def _indian_quote(symbol: str) -> Optional[Dict[str, Any]]:
             continue
         if volume > 0:
             break
-    return {"price": price, "change_pct": change, "volume": volume}
+    return {"price": price, "change_pct": change, "volume": volume,
+            "source": src}
 
 
 def _market_snapshot(symbol: str) -> Dict[str, Any]:
@@ -201,6 +207,24 @@ def _market_snapshot(symbol: str) -> Dict[str, Any]:
         "exchange": "NASDAQ",
     }
 
+    # Indian tickers: NSE/BSE first. Alpha Vantage resolves symbols like
+    # INFY to the US ADR, so the Indian provider (NSE price in INR) takes
+    # precedence for this universe. AV remains the fallback below.
+    if symbol.upper() in _INDIAN_SYMBOLS:
+        live = _indian_quote(symbol)
+        if live:
+            out.update({
+                "price": live["price"],
+                "change_pct": live["change_pct"],
+                "volume": live["volume"],
+                "data_mode": DataMode.LIVE.value,
+                "source": live.get("source", "indian-stock-api"),
+                "currency": "INR",
+                "exchange": "NSE",
+            })
+            _cache.put(key, out)
+            return out
+
     # Try Alpha Vantage
     try:
         client = md.AlphaVantageClient(s.FINANCIAL_DATA_API_KEY or "",
@@ -220,6 +244,26 @@ def _market_snapshot(symbol: str) -> Dict[str, Any]:
     except Exception:
         pass
 
+    # US tickers: Yahoo Finance when Alpha Vantage misses or is exhausted
+    # (free AV tier is 25 calls/day; Yahoo needs no key). Skipped for the
+    # Indian universe, which is handled above/below.
+    if out["price"] <= 0 and symbol.upper() not in _INDIAN_SYMBOLS:
+        try:
+            from app.services import yahoo_finance as yfmod
+            yq = yfmod.get_quote(symbol)
+        except Exception:
+            yq = None
+        if isinstance(yq, dict) and (yq.get("price") or 0) > 0:
+            out.update({
+                "price": yq["price"],
+                "change_pct": yq.get("change_pct") or 0.0,
+                "volume": yq.get("volume") or 0,
+                "data_mode": DataMode.LIVE.value,
+                "source": "yahoo-finance",
+                "currency": yq.get("currency") or "USD",
+                "exchange": "NASDAQ",
+            })
+
     # Indian tickers: live NSE/BSE quote before falling back to cache.
     if out["price"] <= 0 and symbol.upper() in _INDIAN_SYMBOLS:
         live = _indian_quote(symbol)
@@ -229,7 +273,7 @@ def _market_snapshot(symbol: str) -> Dict[str, Any]:
                 "change_pct": live["change_pct"],
                 "volume": live["volume"],
                 "data_mode": DataMode.LIVE.value,
-                "source": "indian-stock-api",
+                "source": live.get("source", "indian-stock-api"),
                 "currency": "INR",
                 "exchange": "NSE",
             })

@@ -1,29 +1,22 @@
 ﻿"""
 QuantPulse AI — Indian Stock Market API Client (NSE/BSE).
 
-Wraps the ``0xramm/Indian-Stock-Market-API`` Flask service, which serves
-live NSE/BSE quotes scraped from public market pages.
+Two live paths, one interface:
 
-Endpoints used (upstream docs):
-    GET /stock?symbol=<SYMBOL>&res=num
-    GET /stock/list?symbols=<S1,S2>&res=num
-    GET /search?q=<QUERY>
+  1. Upstream server — the ``0xramm/Indian-Stock-Market-API`` service when it
+     is running (``INDIAN_STOCK_API_URL``, default ``http://localhost:5000``).
+  2. Native fallback — Yahoo Finance called directly from this backend
+     (:mod:`app.services.indian_native`, the same source the upstream repo
+     wraps). No sidecar server needed.
 
-Conventions:
-  * Base URL is configurable via the ``INDIAN_STOCK_API_URL`` environment
-    variable and defaults to ``http://localhost:5000`` (local Flask dev).
-  * ``res=num`` is attached to every quote request so the upstream returns
-    raw numbers instead of formatted currency strings (``₹2,980.50``).
-  * Tickers are normalised with a ``.NS`` suffix unless they already end in
-    ``.NS`` or ``.BO``.
-  * Every call is best-effort: timeouts, connection errors and non-200
-    responses degrade to ``None`` / ``[]`` so callers fall back to cached or
-    mock data. Labels elsewhere stay truthful (LIVE vs MOCK).
+Every public function tries (1) then (2) and degrades to ``None`` / ``[]``
+so callers fall back to cached or mock data. Payloads carry a top-level
+``"source"`` tag (``"indian-stock-api"`` or ``"yahoo-finance"``) so labels
+downstream stay truthful (LIVE vs MOCK).
 
-Example:
-    >>> from app.services import indian_stock_api as isa
-    >>> isa.get_stock_data("RELIANCE")   # doctest: +SKIP
-    {'symbol': 'RELIANCE.NS', 'price': 2980.5, ...}
+Conventions shared by both paths:
+  * ``res=num`` is attached to every upstream quote request (raw numbers).
+  * Tickers are normalised with a ``.NS`` suffix unless ``.NS``/``.BO``.
 """
 from __future__ import annotations
 
@@ -98,11 +91,33 @@ def normalize_symbol(symbol: str) -> str:
         'RELIANCE.NS'
         >>> normalize_symbol("INFY.BO")
         'INFY.BO'
+        >>> normalize_symbol("^NSEI")
+        '^NSEI'
     """
     sym = symbol.strip().upper()
+    if sym.startswith("^"):
+        return sym  # index ticker (e.g. ^NSEI) — never suffixed
     if sym.endswith(".NS") or sym.endswith(".BO"):
         return sym
     return f"{sym}.NS"
+
+
+def _tag_upstream(data: Any) -> Any:
+    """Shallow-tag an upstream payload with its source (no caller mutation)."""
+    if isinstance(data, dict):
+        tagged = dict(data)
+        tagged.setdefault("source", "indian-stock-api")
+        return tagged
+    if isinstance(data, list):
+        return [dict(d, source=d.get("source", "indian-stock-api"))
+                if isinstance(d, dict) else d for d in data]
+    return data
+
+
+def _native() -> Any:
+    """Lazy import of the native provider (keeps yfinance out of import time)."""
+    from app.services import indian_native
+    return indian_native
 
 
 def _get(path: str, params: Optional[Dict[str, Any]] = None) -> Optional[Any]:
@@ -138,25 +153,61 @@ def _get(path: str, params: Optional[Dict[str, Any]] = None) -> Optional[Any]:
         return None
 
 
+def _resolve_single(symbol: str) -> Optional[Dict[str, Any]]:
+    """Upstream server first, native Yahoo fallback. Never raises."""
+    data = _get("/stock", {"symbol": symbol})
+    if data is not None:
+        return _tag_upstream(data)
+    try:
+        return _native().get_quote(symbol)
+    except Exception:
+        return None
+
+
+def _resolve_batch(normalized: List[str]) -> List[Dict[str, Any]]:
+    """Upstream batch first, native Yahoo fallback. Never raises."""
+    data = _get("/stock/list", {"symbols": ",".join(normalized)})
+    if isinstance(data, list) and data:
+        return _tag_upstream(data)
+    if isinstance(data, dict) and data:  # some versions return one object
+        return [_tag_upstream(data)]
+    try:
+        return _native().get_batch(normalized)
+    except Exception:
+        return []
+
+
+def _resolve_search(query: str) -> List[Dict[str, Any]]:
+    """Upstream search first, native Yahoo fallback. Never raises."""
+    data = _get("/search", {"q": query})
+    if isinstance(data, list) and data:
+        return _tag_upstream(data)
+    try:
+        return _native().search(query)
+    except Exception:
+        return []
+
+
 def get_stock_data(symbol: str) -> Optional[Dict[str, Any]]:
     """Fetch a single NSE/BSE stock quote.
 
-    Calls ``GET /stock?symbol=<SYMBOL>&res=num`` (symbol normalised with
-    :func:`normalize_symbol`).
+    Tries the upstream ``GET /stock?symbol=<SYMBOL>&res=num`` first, then
+    the native Yahoo provider (same source, no sidecar server). Symbol is
+    normalised with :func:`normalize_symbol`.
 
     Args:
         symbol: Ticker such as ``"RELIANCE"`` or ``"INFY.BO"``.
 
     Returns:
-        Parsed JSON dict on success, else ``None``. Results are cached
-        for 30 seconds.
+        Upstream-shaped quote dict (with a ``"source"`` tag) on success,
+        else ``None``. Results are cached for 30 seconds.
     """
     sym = normalize_symbol(symbol)
     key = f"stock:{sym}"
     cached = _cache.get(key, _CACHE_TTL_S)
     if cached is not None:
         return cached
-    data = _get("/stock", {"symbol": sym})
+    data = _resolve_single(sym)
     if data is not None:
         _cache.put(key, data)
     return data
@@ -165,7 +216,8 @@ def get_stock_data(symbol: str) -> Optional[Dict[str, Any]]:
 def get_batch_stocks(symbols_list: List[str]) -> List[Dict[str, Any]]:
     """Fetch multiple NSE/BSE quotes in one call.
 
-    Calls ``GET /stock/list?symbols=<S1,S2>&res=num``.
+    Tries upstream ``GET /stock/list?symbols=<S1,S2>&res=num``, then the
+    native Yahoo provider.
 
     Args:
         symbols_list: Tickers, each normalised with :func:`normalize_symbol`.
@@ -181,16 +233,15 @@ def get_batch_stocks(symbols_list: List[str]) -> List[Dict[str, Any]]:
     cached = _cache.get(key, _CACHE_TTL_S)
     if cached is not None:
         return cached
-    data = _get("/stock/list", {"symbols": ",".join(normalized)})
-    if data is not None:
-        _cache.put(key, data)
-    return data if isinstance(data, list) else []
+    data = _resolve_batch(normalized)
+    _cache.put(key, data)
+    return data
 
 
 def search_stocks(query: str) -> List[Dict[str, Any]]:
-    """Search the upstream symbol catalogue by name or ticker.
+    """Search NSE/BSE symbols by name or ticker.
 
-    Calls ``GET /search?q=<QUERY>``.
+    Tries upstream ``GET /search?q=<QUERY>``, then native Yahoo search.
 
     Args:
         query: Free-text search, e.g. ``"reliance"``.
@@ -204,7 +255,6 @@ def search_stocks(query: str) -> List[Dict[str, Any]]:
     cached = _cache.get(key, _CACHE_TTL_S)
     if cached is not None:
         return cached
-    data = _get("/search", {"q": query.strip()})
-    if data is not None:
-        _cache.put(key, data)
-    return data if isinstance(data, list) else []
+    data = _resolve_search(query.strip())
+    _cache.put(key, data)
+    return data

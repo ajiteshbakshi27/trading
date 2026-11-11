@@ -183,8 +183,11 @@ the backend is running — other visitors would need a public tunnel URL
 1. Fill `backend/.env` (keys optional; empty = honest mock fallback).
 2. Start: `python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 1`
    from `backend/`. Verify `http://localhost:8000/health`.
-3. Optional live Indian stocks: run `npx wrangler dev --port 5000` in
-   `Indian-Stock-Market-API/` (defaults are already wired: no config needed).
+3. Optional live Indian stocks: native Yahoo Finance provider works with zero
+   setup. Running `npx wrangler dev --port 5000` in `Indian-Stock-Market-API/`
+   adds it as a preferred source, but it is no longer required.
+4. US stocks: Alpha Vantage first (if key set), Yahoo Finance automatically
+   when AV misses or its 25/day budget is exhausted — no key needed.
 4. In `backend/.env`, replace `<your-app>` in `CORS_ORIGINS` with your real
    Vercel app name after step 3 below, then restart the backend.
 
