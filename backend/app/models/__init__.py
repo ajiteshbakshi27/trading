@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Research domain models.
+Parakh — Research domain models.
 
 The unified object graph that makes the five features one loop:
 

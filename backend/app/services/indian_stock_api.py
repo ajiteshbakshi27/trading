@@ -1,5 +1,5 @@
 ﻿"""
-QuantPulse AI — Indian Stock Market API Client (NSE/BSE).
+Parakh — Indian Stock Market API Client (NSE/BSE).
 
 Wraps the ``0xramm/Indian-Stock-Market-API`` Flask service, which serves
 live NSE/BSE quotes scraped from public market pages.
@@ -126,7 +126,7 @@ def _get(path: str, params: Optional[Dict[str, Any]] = None) -> Optional[Any]:
             params=merged,
             timeout=TIMEOUT_S,
             follow_redirects=True,
-            headers={"User-Agent": "QuantPulseAI/1.0 (+research)"},
+            headers={"User-Agent": "ParakhAI/1.0 (+research)"},
         )
         if r.status_code != 200:
             return None

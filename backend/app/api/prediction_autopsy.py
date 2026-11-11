@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Feature 4 API: Prediction Failure Autopsy.
+Parakh — Feature 4 API: Prediction Failure Autopsy.
 
     GET  /api/predictions                 list predictions
     GET  /api/predictions/{id}            one prediction (+ outcome if resolved)

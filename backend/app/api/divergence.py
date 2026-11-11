@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Divergence API (Smart Money vs Ape Money).
+Parakh — Divergence API (Smart Money vs Ape Money).
 
     GET /api/divergence              full scan across the universe
     GET /api/divergence/{symbol}     one symbol's divergence snapshot

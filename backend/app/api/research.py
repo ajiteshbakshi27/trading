@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Research router.
+Parakh — Research router.
 
     GET /api/research/signals        recent fused signals
     GET /api/research/evidence       evidence records

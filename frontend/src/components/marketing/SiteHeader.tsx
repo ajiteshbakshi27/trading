@@ -12,9 +12,9 @@ import { clearSession } from "@/lib/auth";
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 const NAV = [
-  { href: "/#desk", label: "Desk" },
-  { href: "/#runtime", label: "Runtime" },
-  { href: "/#risk", label: "Risk" },
+  { href: "/#how", label: "How it works" },
+  { href: "/#features", label: "Features" },
+  { href: "/#honesty", label: "Honesty" },
 ];
 
 export default function SiteHeader() {
@@ -53,7 +53,7 @@ export default function SiteHeader() {
         }`}
       />
       <div className="site-header-in relative mx-auto flex h-16 max-w-6xl items-center gap-6 px-6">
-        <Link href="/" className="inline-flex min-h-11 items-center text-[15px]" aria-label="QuantPulse AI home">
+        <Link href="/" className="inline-flex min-h-11 items-center text-[15px]" aria-label="Parakh home">
           <Wordmark />
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-fg-muted md:flex" aria-label="Primary">
@@ -75,7 +75,7 @@ export default function SiteHeader() {
           {session ? (
             <>
               <Link
-                href="/dashboard"
+                href="/home"
                 className="hidden items-center gap-2 rounded-full border border-hairline px-3 py-1.5 text-xs text-fg-muted sm:inline-flex sm:min-h-11"
               >
                 <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-accent" />

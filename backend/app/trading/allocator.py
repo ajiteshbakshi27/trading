@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Smart Capital Allocator (Phase 4)
+Parakh - Smart Capital Allocator (Phase 4)
 Combines Quantum Portfolio Optimization (QAOA/VQE proxy), social-sentiment
 momentum, and HFT risk metrics into a whole-share allocation plan.
 

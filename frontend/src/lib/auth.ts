@@ -1,76 +1,136 @@
 /**
- * Demo session layer — fake JWT in localStorage.
- * NOT real auth: the signature is decorative and the token is readable.
- * Swap `issueSession` for a server call when a real IdP exists.
+ * Parakh auth.
+ *
+ * Production: Supabase Auth (email + password, email confirmation, password
+ * reset). The access token is sent to the backend as a Bearer token and
+ * verified there.
+ *
+ * Local dev (no NEXT_PUBLIC_SUPABASE_* vars): a local profile is kept in
+ * localStorage and requests carry an X-Parakh-Dev-User header. The backend
+ * only honours that header when it is NOT in production.
  */
 "use client";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const KEY = "qp.session";
-const WEEK = 7 * 24 * 60 * 60 * 1000;
+const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
+const SB_ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+export const AUTH_MODE: "supabase" | "dev" = SB_URL && SB_ANON ? "supabase" : "dev";
+export const AUTH_EVENT = "parakh:auth";
 
-export type Session = { email: string; name: string; iat: number; exp: number };
+const DEV_KEY = "parakh.dev-session";
 
-function b64url(input: string): string {
-  const bytes = new TextEncoder().encode(input);
-  let bin = "";
-  bytes.forEach((b) => (bin += String.fromCharCode(b)));
-  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
+export type Session = { email: string; name: string; userId: string };
 
-function randomSegment(): string {
-  const a = new Uint8Array(24);
-  crypto.getRandomValues(a);
-  let bin = "";
-  a.forEach((b) => (bin += String.fromCharCode(b)));
-  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-}
-
-export const AUTH_EVENT = "qp:auth";
+let client: SupabaseClient | null = null;
+let cached: Session | null = null;
+let readyPromise: Promise<void> | null = null;
 
 function announce() {
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new Event(AUTH_EVENT));
-  }
+  if (typeof window !== "undefined") window.dispatchEvent(new Event(AUTH_EVENT));
 }
 
-export function issueSession(email: string, name: string): Session {
-  const now = Date.now();
-  const header = b64url(JSON.stringify({ alg: "none", typ: "JWT" }));
-  const payload = b64url(
-    JSON.stringify({ email, name, iat: Math.floor(now / 1000), exp: Math.floor((now + WEEK) / 1000) })
-  );
-  const token = `${header}.${payload}.${randomSegment()}`;
-  const s: Session = { email, name, iat: now, exp: now + WEEK };
-  try {
-    localStorage.setItem(KEY, JSON.stringify({ ...s, token }));
-  } catch {
-    /* private mode */
+export function supabase(): SupabaseClient | null {
+  if (AUTH_MODE !== "supabase" || typeof window === "undefined") return null;
+  if (!client) {
+    client = createClient(SB_URL, SB_ANON, { auth: { persistSession: true, autoRefreshToken: true } });
+    client.auth.onAuthStateChange((_e, s) => {
+      cached = s?.user
+        ? { email: s.user.email || "", userId: s.user.id,
+            name: (s.user.user_metadata?.name as string) || (s.user.email || "").split("@")[0] }
+        : null;
+      announce();
+    });
   }
-  announce();
-  return s;
+  return client;
+}
+
+/** Resolves once the persisted Supabase session (if any) has been loaded. */
+export function authReady(): Promise<void> {
+  if (AUTH_MODE === "dev" || typeof window === "undefined") return Promise.resolve();
+  if (!readyPromise) {
+    readyPromise = supabase()!.auth.getSession().then(({ data }) => {
+      const u = data.session?.user;
+      cached = u ? { email: u.email || "", userId: u.id,
+                     name: (u.user_metadata?.name as string) || (u.email || "").split("@")[0] } : null;
+      announce();
+    });
+  }
+  return readyPromise;
+}
+
+function devId(email: string): string {
+  return (email.split("@")[0] || "dev-user").toLowerCase().replace(/[^a-z0-9_.-]/g, "").slice(0, 40) || "dev-user";
 }
 
 export function readSession(): Session | null {
   if (typeof window === "undefined") return null;
+  if (AUTH_MODE === "supabase") return cached;
   try {
-    const raw = localStorage.getItem(KEY);
-    if (!raw) return null;
-    const s = JSON.parse(raw) as Session;
-    if (!s?.exp || s.exp < Date.now()) {
-      localStorage.removeItem(KEY);
-      return null;
-    }
-    return s;
+    const raw = localStorage.getItem(DEV_KEY);
+    return raw ? (JSON.parse(raw) as Session) : null;
   } catch {
     return null;
   }
 }
 
-export function clearSession(): void {
-  try {
-    localStorage.removeItem(KEY);
-  } catch {
-    /* noop */
+export async function signIn(email: string, password: string): Promise<void> {
+  if (AUTH_MODE === "supabase") {
+    const { error } = await supabase()!.auth.signInWithPassword({ email, password });
+    if (error) throw new Error(error.message);
+    return;
   }
+  const s: Session = { email, name: email.split("@")[0], userId: devId(email) };
+  try { localStorage.setItem(DEV_KEY, JSON.stringify(s)); } catch { /* private mode */ }
   announce();
+}
+
+/** Returns true when the user must confirm their email before signing in. */
+export async function signUp(email: string, password: string, name: string): Promise<boolean> {
+  if (AUTH_MODE === "supabase") {
+    const { data, error } = await supabase()!.auth.signUp({
+      email, password,
+      options: { data: { name }, emailRedirectTo: `${window.location.origin}/login` },
+    });
+    if (error) throw new Error(error.message);
+    return !data.session;
+  }
+  await signIn(email, password);
+  return false;
+}
+
+export async function resetPassword(email: string): Promise<void> {
+  if (AUTH_MODE !== "supabase") return;
+  const { error } = await supabase()!.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  });
+  if (error) throw new Error(error.message);
+}
+
+export async function updatePassword(password: string): Promise<void> {
+  if (AUTH_MODE !== "supabase") throw new Error("Password reset needs Supabase configured.");
+  const { error } = await supabase()!.auth.updateUser({ password });
+  if (error) throw new Error(error.message);
+}
+
+export async function clearSession(): Promise<void> {
+  if (AUTH_MODE === "supabase") {
+    await supabase()?.auth.signOut();
+  } else {
+    try { localStorage.removeItem(DEV_KEY); } catch { /* noop */ }
+  }
+  cached = null;
+  announce();
+}
+
+/** Headers that identify the caller to the Parakh backend. */
+export async function authHeaders(): Promise<Record<string, string>> {
+  if (typeof window === "undefined") return {};
+  if (AUTH_MODE === "supabase") {
+    await authReady();
+    const { data } = await supabase()!.auth.getSession();
+    const t = data.session?.access_token;
+    return t ? { Authorization: `Bearer ${t}` } : {};
+  }
+  const s = readSession();
+  return { "X-Parakh-Dev-User": s?.userId || "dev-user" };
 }

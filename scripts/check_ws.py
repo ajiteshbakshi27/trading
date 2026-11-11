@@ -1,5 +1,5 @@
 """
-QuantPulse AI — verify the live tick WebSocket actually connects under CSP.
+Parakh — verify the live tick WebSocket actually connects under CSP.
 Run:  python scripts/check_ws.py
 """
 from __future__ import annotations

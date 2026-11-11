@@ -8,32 +8,28 @@ const COLUMNS = [
   {
     title: "Product",
     links: [
-      { label: "Live terminal", href: "/dashboard" },
-      { label: "HFT order book", href: "/hft-orderbook" },
-      { label: "Prediction markets", href: "/prediction-bets" },
-      { label: "Capital allocator", href: "/allocator" },
-      { label: "Candlestick charts", href: "/charts" },
-      { label: "Strategy lab", href: "/quantum-analytics" },
-      { label: "Signal history", href: "/history" },
+      { label: "Check a trade", href: "/check" },
+      { label: "Journal", href: "/journal" },
+      { label: "Calibration", href: "/calibration" },
+      { label: "Hype radar", href: "/radar" },
+      { label: "F&O analyser", href: "/options" },
+      { label: "Leaderboard", href: "/leaderboard" },
     ],
   },
   {
-    title: "Data sources",
+    title: "Data",
     links: [
-      { label: "Alpaca — paper + IEX stream", href: "https://alpaca.markets", external: true },
-      { label: "Alpha Vantage — quotes", href: "https://alphavantage.co", external: true },
-      { label: "Reddit — r/wallstreetbets", href: "https://reddit.com/r/wallstreetbets", external: true },
-      { label: "X — cashtag search", href: "https://x.com", external: true },
-      { label: "Prediction markets", href: "https://polymarket.com", external: true },
+      { label: "NSE daily prices (Yahoo Finance)", href: "https://finance.yahoo.com", external: true },
+      { label: "Zerodha Kite Connect", href: "https://kite.trade", external: true },
+      { label: "r/IndianStreetBets", href: "https://reddit.com/r/IndianStreetBets", external: true },
+      { label: "Claude by Anthropic", href: "https://www.anthropic.com/claude", external: true },
     ],
   },
   {
     title: "Resources",
     links: [
-      { label: "API reference", href: API, external: true },
-      { label: "WebSocket stream", href: `${API}/docs`, external: true },
-      { label: "OpenAPI schema", href: `${API}/openapi.json`, external: true },
-      { label: "System status", href: "/#runtime" },
+      { label: "API reference", href: `${API}/docs`, external: true },
+      { label: "How it works", href: "/#how" },
       { label: "Risk disclosure", href: "/legal" },
     ],
   },
@@ -118,7 +114,7 @@ export default function SiteFooter() {
         </div>
 
         <div className="mt-14 flex flex-col gap-3 border-t border-hairline pt-6 text-xs text-fg-muted sm:flex-row sm:items-center sm:justify-between">
-          <p>© 2026 QuantPulse AI. Simulated and delayed data unless a feed is marked live.</p>
+          <p>© 2026 Parakh. Analysis, not investment advice. Data is end-of-day unless marked otherwise.</p>
           <p className="tnum">Quotes: Alpaca IEX · Alpha Vantage · Sentiment: Reddit · X</p>
         </div>
       </div>

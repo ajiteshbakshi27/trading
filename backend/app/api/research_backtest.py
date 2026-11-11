@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Backtest API.
+Parakh — Backtest API.
 
     GET /api/backtest/research?symbol=NVDA&period=1y
     GET /api/backtest/research/suite?symbols=NVDA,TSLA,AAPL&period=1y

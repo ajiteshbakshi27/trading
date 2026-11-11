@@ -1,5 +1,5 @@
 """
-QuantPulse AI - HFT Microstructure Engine
+Parakh - HFT Microstructure Engine
 Implements L2 order-book simulation, Order Flow Imbalance (OFI),
 latency arbitrage detection, and VWAP/TWAP execution.
 

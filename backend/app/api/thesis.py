@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Feature 2 API: Thesis Stress Lab.
+Parakh — Feature 2 API: Thesis Stress Lab.
 
     POST /api/thesis/create            fuse evidence into a testable thesis
     POST /api/thesis/{id}/stress-test perturb + re-fuse under 7 named rules

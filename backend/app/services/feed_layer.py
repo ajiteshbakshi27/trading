@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Normalized feed layer for the research loop.
+Parakh — Normalized feed layer for the research loop.
 
 The five new features must not each grow their own Reddit/X/Alpaca client.
 Everything they read passes through here, which guarantees one place owns
@@ -155,7 +155,7 @@ def _rss_items(limit: int) -> List[NewsItem]:
     for publisher, url in RSS_FEEDS:
         try:
             r = httpx.get(url, timeout=6.0, follow_redirects=True,
-                          headers={"User-Agent": "QuantPulseAI/1.0 (+research)"})
+                          headers={"User-Agent": "ParakhAI/1.0 (+research)"})
             if r.status_code != 200:
                 continue
             root = ET.fromstring(r.content)
@@ -259,7 +259,7 @@ def mock_news(limit: int = 12, seed_offset: int = 0) -> List[NewsItem]:
     for i in range(limit):
         title, sym = _MOCK_HEADLINES[(i + seed_offset) % len(_MOCK_HEADLINES)]
         out.append(NewsItem(
-            title=title, publisher="QuantPulse mock wire",
+            title=title, publisher="Parakh mock wire",
             published_at=iso(now - (i * 420)),
             tickers=[sym], summary="Synthetic headline for offline demonstration.",
             data_mode=DataMode.MOCK,

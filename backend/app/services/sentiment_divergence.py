@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Cross-Platform Sentiment Divergence.
+Parakh — Cross-Platform Sentiment Divergence.
 
 Measures how much sentiment *disagrees across platforms* for the same ticker.
 Reddit may be euphoric while X is neutral, or vice versa. That disagreement is

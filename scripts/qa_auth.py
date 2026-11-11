@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Phase 3 auth QA (Playwright).
+Parakh — Phase 3 auth QA (Playwright).
 Proves: labels wired, error summary focus, 44px targets, password
 manager attributes, password visibility toggle, full signup -> session
 -> header swap -> sign out flow, reduced motion, 360px.

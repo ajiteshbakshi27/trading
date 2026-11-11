@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Telegram / Discord webhook alerts (best-effort, never raises).
+Parakh - Telegram / Discord webhook alerts (best-effort, never raises).
 Fires on high-confidence BET_AGAINST (fade crowd) and high-discrepancy
 prediction edges. No keys -> mock mode, payload returned unsent.
 """

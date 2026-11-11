@@ -307,7 +307,9 @@ def build_report(idea: ParsedIdea) -> Dict[str, Any]:
         agrees = (mdir == "LONG" and long) or (mdir == "SHORT" and not long)
         stress = {"model_direction": mdir, "model_agrees": agrees if mdir != "FLAT" else None,
                   "model_confidence": round(th.confidence, 3),
-                  "robustness": d.get("robustness"), "label": d.get("robustness_label"),
+                  "robustness": d.get("robustness") if mdir != "FLAT" else None,
+                  "label": d.get("robustness_label") if mdir != "FLAT"
+                           else "No clear lean in price data, so there's nothing to stress-test",
                   "worst_case_confidence": d.get("worst_case_confidence"),
                   "scenarios": [{"scenario": str(r.get("label") or r.get("scenario")),
                                  "survives": r.get("survives"), "flipped": r.get("flipped"),

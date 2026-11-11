@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Monte Carlo VaR API.
+Parakh — Monte Carlo VaR API.
 
     GET /api/monte-carlo/var?symbol=NVDA&days=1&confidence=0.95&sims=10000
 

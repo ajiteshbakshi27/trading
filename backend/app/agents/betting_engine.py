@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Contrarian Betting Engine
+Parakh - Contrarian Betting Engine
 BET FOR : sentiment aligns with HFT momentum + quantum fair value.
 BET AGAINST (fade): crowd euphoria (>90% bullish) collides with
   weak/negative OFI and quantum overbought zones.

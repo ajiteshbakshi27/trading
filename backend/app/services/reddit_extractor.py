@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Reddit Data Extractor.
+Parakh — Reddit Data Extractor.
 
 Fetches r/wallstreetbets, r/stocks, r/options posts via Reddit's public
 JSON endpoints (no auth required, rate-limited). Falls back to deterministic
@@ -18,7 +18,7 @@ from typing import Any, Dict, List, Optional
 import httpx
 
 SUBREDDITS = ["wallstreetbets", "stocks", "options", "pennystocks"]
-UA = {"User-Agent": "QuantPulseAI/1.0 (research; contact: trader@quantpulse.ai)"}
+UA = {"User-Agent": "ParakhAI/1.0 (research; contact: trader@quantpulse.ai)"}
 
 #: Cache TTL — Reddit rate-limits unauthenticated requests hard.
 _TTL_S = 120.0

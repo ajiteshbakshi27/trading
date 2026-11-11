@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Feature 4: Prediction Failure Autopsy.
+Parakh — Feature 4: Prediction Failure Autopsy.
 
 When a prediction resolves wrong, this module asks *which component of the
 model disagreed with what actually happened* — using the evidence frozen at

@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Indian Stock Market API client tests.
+Parakh — Indian Stock Market API client tests.
 
 Run:  python -m pytest tests/test_indian_stock_api.py -v
 

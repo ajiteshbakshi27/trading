@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Research domain enums.
+Parakh — Research domain enums.
 
 One taxonomy shared by every research service. Adding a layer, a feature or
 an event type here makes it available to the propagation engine, the fusion

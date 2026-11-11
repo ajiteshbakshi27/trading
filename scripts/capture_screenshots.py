@@ -1,5 +1,5 @@
 """
-Capture screenshots of all QuantPulse pages for the presentation.
+Capture screenshots of all Parakh pages for the presentation.
 Run with both servers up:  python scripts/capture_screenshots.py
 """
 from __future__ import annotations

@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Feature 1: Information Propagation domain model.
+Parakh — Feature 1: Information Propagation domain model.
 
 A `MarketEvent` is the atom of the loop. It produces `Evidence` (one per
 information layer), and those observations are ordered into an

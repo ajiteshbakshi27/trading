@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Alpha Vantage live market data (prices + intraday).
+Parakh - Alpha Vantage live market data (prices + intraday).
 Free-tier guards: 60s response cache + daily call budget (default 20/25).
 Any failure (no key, rate limit, network) returns None -> caller falls
 back to the HFT simulator. Never raises to the request path.

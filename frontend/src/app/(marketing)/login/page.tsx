@@ -4,7 +4,7 @@ import LoginForm from "./LoginForm";
 
 export const metadata: Metadata = {
   title: "Sign in",
-  description: "Sign in to the QuantPulse AI trading terminal.",
+  description: "Sign in to the Parakh trading terminal.",
 };
 
 export default function LoginPage() {

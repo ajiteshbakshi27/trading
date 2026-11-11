@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Indian Stocks API (NSE/BSE via 0xramm/Indian-Stock-Market-API).
+Parakh — Indian Stocks API (NSE/BSE via 0xramm/Indian-Stock-Market-API).
 
     GET /api/indian/stock?symbol=RELIANCE        single quote
     GET /api/indian/batch?symbols=RELIANCE,INFY  batch quotes

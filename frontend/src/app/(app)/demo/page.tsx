@@ -83,7 +83,7 @@ export default function DemoPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="section-label">QuantPulse AI · Demo</div>
+          <div className="section-label">Parakh · Demo</div>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">
             Competition Demo
           </h1>
@@ -336,7 +336,7 @@ export default function DemoPage() {
                   sample size was insufficient.
                 </p>
                 <p className="mt-2 text-slate-500">
-                  These are measurements inside QuantPulse's fusion function on
+                  These are measurements inside Parakh's fusion function on
                   a synthetic window. They do not constitute predictive edge in
                   any market.
                 </p>

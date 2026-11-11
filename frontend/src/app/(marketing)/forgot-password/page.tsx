@@ -3,6 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import AuthShell, { SubmitButton } from "@/components/marketing/AuthShell";
 import { Input, ErrorSummary } from "@/components/marketing/Form";
+import { AUTH_MODE, resetPassword } from "@/lib/auth";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
@@ -20,7 +21,13 @@ export default function ForgotPasswordPage() {
     }
     setError("");
     setBusy(true);
-    await new Promise((r) => setTimeout(r, 700));
+    try {
+      await resetPassword(email);
+    } catch (err: any) {
+      setBusy(false);
+      setError(err?.message || "Couldn't send the reset email");
+      return;
+    }
     setBusy(false);
     setSent(true);
   };
@@ -37,7 +44,9 @@ export default function ForgotPasswordPage() {
         }
       >
         <div role="status" className="rounded-xl border border-hairline bg-surface-2/60 p-4 text-sm text-fg-muted">
-          This demo does not send email. The success state exists so you can see how it behaves.
+          {AUTH_MODE === "supabase"
+            ? "The link expires in an hour. Check spam if you don't see it."
+            : "Local dev mode does not send email — configure Supabase to enable password resets."}
         </div>
       </AuthShell>
     );

@@ -82,7 +82,7 @@ export default function ThesisLabPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="section-label">QuantPulse AI · Research</div>
+          <div className="section-label">Parakh · Research</div>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">Thesis Lab</h1>
           <p className="mt-1 max-w-2xl text-sm text-slate-400">
             Every signal becomes a testable thesis. Then we attack it.

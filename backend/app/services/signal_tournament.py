@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Feature 5: Adaptive Signal Tournament.
+Parakh — Feature 5: Adaptive Signal Tournament.
 
 Runs controlled ablations of the shared fusion function so the platform can
 answer "does this information source actually contribute?" with a measurement
@@ -398,7 +398,7 @@ def run_arm(name: str, description: str, disabled: Sequence[FeatureKey],
         fingerprint=fingerprint(name, sorted(f.value for f in enabled),
                                 sorted(drop_layers),
                                 window.start, window.end, window.seed),
-        caveat=("Differences are measured inside QuantPulse's fusion function "
+        caveat=("Differences are measured inside Parakh's fusion function "
                 "on this window only."),
     )
 

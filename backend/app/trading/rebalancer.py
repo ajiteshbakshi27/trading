@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Portfolio Automated Rebalancer.
+Parakh - Portfolio Automated Rebalancer.
 Compares current holdings vs target VQE/quantum weights and emits
 whole-share buy/sell orders to close the drift.
 """

@@ -1,0 +1,12 @@
+{
+  "name": "Parakh — trade idea checker",
+  "short_name": "Parakh",
+  "description": "Check trade ideas before you place them, journal your trades and track your calibration.",
+  "start_url": "/home",
+  "display": "standalone",
+  "background_color": "#030712",
+  "theme_color": "#030712",
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Phase 4 hardening smoke test.
+Parakh — Phase 4 hardening smoke test.
 Run against a live server:  python scripts/smoke_hardening.py
 Set API=http://localhost:8000  (default).
 """

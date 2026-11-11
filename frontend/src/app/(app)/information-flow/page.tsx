@@ -75,7 +75,7 @@ export default function InformationFlowPage() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="section-label">QuantPulse AI · Research</div>
+          <div className="section-label">Parakh · Research</div>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">
             Information Flow
           </h1>

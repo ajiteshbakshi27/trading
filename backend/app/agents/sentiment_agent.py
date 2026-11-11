@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Unified Sentiment Agent (Reddit + X/Twitter)
+Parakh - Unified Sentiment Agent (Reddit + X/Twitter)
 Live API when keys exist; deterministic mock feed otherwise.
 Sentiment: VADER if installed, else lightweight lexicon fallback.
 """
@@ -133,7 +133,7 @@ class SentimentEngine:
         try:
             import praw
             reddit = praw.Reddit(client_id=client_id, client_secret=secret,
-                                 user_agent="QuantPulse AI v1.0")
+                                 user_agent="Parakh v1.0")
             out = []
             for sub in SUBREDDITS:
                 for post in reddit.subreddit(sub).hot(limit=limit):

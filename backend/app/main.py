@@ -1,5 +1,5 @@
 """
-QuantPulse AI - FastAPI Entry Point
+Parakh - FastAPI Entry Point
 REST + WebSocket streaming with full mock fallbacks.
 Run: uvicorn app.main:app --reload --port 8000
 """

@@ -5,6 +5,8 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 // The live tape runs over a WebSocket, which is a *different* origin scheme
 // for CSP purposes: http://host:8000 must also allow ws://host:8000.
 const wsUrl = apiUrl.replace(/^http/, "ws");
+// Supabase Auth runs in the browser, so its origin must be allowed too.
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
 
 const csp = [
   "default-src 'self'",
@@ -14,7 +16,9 @@ const csp = [
   "img-src 'self' data: blob:",
   "font-src 'self' data:",
   // Backend is cross-origin (Render) for both fetch and the tick stream.
-  `connect-src 'self' ${apiUrl} ${wsUrl}`,
+  `connect-src 'self' ${apiUrl} ${wsUrl} ${supabaseUrl}`.trim(),
+  "worker-src 'self'",
+  "manifest-src 'self'",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

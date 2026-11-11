@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Real-time Alpaca data websocket stream.
+Parakh - Real-time Alpaca data websocket stream.
 Maintains a persistent connection to Alpaca data v2 (trades + quotes),
 auto-reconnects with backoff, and keeps the latest tick per symbol.
 

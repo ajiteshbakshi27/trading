@@ -1,5 +1,5 @@
 """
-QuantPulse AI — The closed research loop.
+Parakh — The closed research loop.
 
 One orchestrator, one direction of travel:
 

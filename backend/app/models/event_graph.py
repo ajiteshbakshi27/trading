@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Feature 3: Event → Asset Transmission domain model.
+Parakh — Feature 3: Event → Asset Transmission domain model.
 
 The graph is EVENT → THEME → ASSET. Relationships are typed by
 `RelationKind`, whose vocabulary deliberately excludes causation. Historical
@@ -99,5 +99,5 @@ class EventTransmissionGraph(BaseModel):
                                  "associated", "potentially affected"])
     disclaimer: str = (
         "Relationships shown are observed co-occurrence and ordering. "
-        "QuantPulse does not assert that any event caused any asset move."
+        "Parakh does not assert that any event caused any asset move."
     )

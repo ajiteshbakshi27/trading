@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Feature 1 API: Information Propagation.
+Parakh — Feature 1 API: Information Propagation.
 
     GET /api/information/events            list detected events
     GET /api/information/events/{id}       one event + its evidence

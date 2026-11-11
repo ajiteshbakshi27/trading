@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Feature 5: Adaptive Signal Tournament domain model.
+Parakh — Feature 5: Adaptive Signal Tournament domain model.
 
 An experiment is an ablation of the fusion model over a declared window. It
 records exactly which features were removed, how direction/confidence were
@@ -113,7 +113,7 @@ class ExperimentResult(BaseModel):
     fingerprint: str = ""
     status: str = "completed"
     caveat: str = (
-        "Differences are measured inside QuantPulse's fusion function on this "
+        "Differences are measured inside Parakh's fusion function on this "
         "window only. They quantify marginal contribution to this model, not "
         "predictive edge in the market."
     )

@@ -1,32 +1,24 @@
 "use client";
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
-import { AUTH_EVENT, readSession } from "@/lib/auth";
+import { AUTH_EVENT, authReady, readSession, type Session } from "@/lib/auth";
 
-/**
- * Session state for the demo auth layer.
- * Re-reads on route change and on the qp:auth event so sign-in/out
- * updates every header without a full reload.
- */
+/** Current user + a ready flag; updates on sign-in/out in any tab. */
 export function useSession() {
-  const [session, setSession] = useState<{ email: string; name: string } | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [ready, setReady] = useState(false);
-  const pathname = usePathname();
 
   useEffect(() => {
-    const sync = () => {
-      const s = readSession();
-      setSession(s ? { email: s.email, name: s.name } : null);
-      setReady(true);
-    };
-    sync();
+    let alive = true;
+    const sync = () => alive && setSession(readSession());
+    authReady().then(() => { if (alive) { sync(); setReady(true); } });
     window.addEventListener(AUTH_EVENT, sync);
     window.addEventListener("storage", sync);
     return () => {
+      alive = false;
       window.removeEventListener(AUTH_EVENT, sync);
       window.removeEventListener("storage", sync);
     };
-  }, [pathname]);
+  }, []);
 
   return { session, ready };
 }

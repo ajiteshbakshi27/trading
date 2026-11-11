@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Automated Risk Management & Emergency Kill-Switch.
+Parakh - Automated Risk Management & Emergency Kill-Switch.
 Monitors drawdown / VaR; trips a process-wide halt flag, logs the event,
 and liquidates via Alpaca (mock-safe). Live auto-arm wires to broker
 equity in Phase 5+; manual + evaluate endpoints work now.

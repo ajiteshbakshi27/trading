@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Monte Carlo VaR Engine.
+Parakh — Monte Carlo VaR Engine.
 
 Simulates thousands of price paths using Geometric Brownian Motion and
 computes Value at Risk (VaR) and Expected Shortfall (CVaR) at configurable

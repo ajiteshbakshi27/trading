@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Copilot quantitative reasoning engine.
+Parakh - Copilot quantitative reasoning engine.
 Rule-based explainer over the live snapshot (no LLM key required):
 answers "why this signal", "how to allocate", "risk", and "edge" questions
 in plain language. If COPILOT_LLM_URL is configured, the frontend may

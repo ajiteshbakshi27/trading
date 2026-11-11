@@ -4,14 +4,14 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import AuthShell, { SubmitButton } from "@/components/marketing/AuthShell";
 import { Input, PasswordInput, ErrorSummary } from "@/components/marketing/Form";
-import { issueSession } from "@/lib/auth";
+import { AUTH_MODE, signIn } from "@/lib/auth";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
 export default function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
-  const next = params.get("next") || "/dashboard";
+  const next = params.get("next") || "/home";
   const summaryRef = useRef<HTMLDivElement>(null);
 
   const [email, setEmail] = useState("");
@@ -32,16 +32,22 @@ export default function LoginForm() {
       return;
     }
     setBusy(true);
-    await new Promise((r) => setTimeout(r, 700));
-    issueSession(email, email.split("@")[0]);
+    try {
+      await signIn(email, password);
+    } catch (err: any) {
+      setBusy(false);
+      setErrors({ email: err?.message || "Sign-in failed" });
+      requestAnimationFrame(() => summaryRef.current?.focus());
+      return;
+    }
     // `next` stays the route param: never shadow it with the error map above.
-    router.push(next.startsWith("/") ? next : "/dashboard");
+    router.push(next.startsWith("/") && !next.startsWith("//") ? next : "/home");
   };
 
   return (
     <AuthShell
       title="Sign in"
-      subtitle="Pick up where the tape left off."
+      subtitle="Check your next trade before you take it."
       footer={
         <>
           No account?{" "}
@@ -81,8 +87,9 @@ export default function LoginForm() {
           Sign in
         </SubmitButton>
         <p className="text-center text-xs text-fg-muted">
-          Demo authentication — the session is a fake JWT in localStorage. No account, no email, no
-          server.
+          {AUTH_MODE === "supabase"
+            ? "Secured by Supabase Auth."
+            : "Local dev mode — no account server configured; your data stays on this backend under a local profile."}
         </p>
       </form>
     </AuthShell>

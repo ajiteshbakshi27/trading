@@ -1,19 +1,27 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import RegisterSW from "@/components/RegisterSW";
 
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 
 export const metadata: Metadata = {
-  title: { default: "QuantPulse AI — quantum + HFT trading terminal", template: "%s · QuantPulse AI" },
+  title: { default: "Parakh — test your trade before the market does", template: "%s · Parakh" },
   description:
-    "Quantum portfolio weights, HFT order-flow execution and crowd-sentiment fades in one live trading terminal.",
+    "An AI trading coach for Indian markets: check trade ideas before you place them, journal your Zerodha trades, get honest autopsies and track your calibration.",
+  manifest: "/manifest.webmanifest",
+  applicationName: "Parakh",
 };
+
+export const viewport: Viewport = { themeColor: "#030712" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${inter.variable} dark`}>
-      <body>{children}</body>
+      <body>
+        {children}
+        <RegisterSW />
+      </body>
     </html>
   );
 }

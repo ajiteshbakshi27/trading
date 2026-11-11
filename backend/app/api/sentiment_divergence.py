@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Cross-Platform Sentiment Divergence API.
+Parakh — Cross-Platform Sentiment Divergence API.
 
     GET /api/divergence/cross-platform?limit=12
     GET /api/divergence/cross-platform/{symbol}

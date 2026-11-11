@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Quantum Portfolio Optimizer (VQE / QAOA)
+Parakh - Quantum Portfolio Optimizer (VQE / QAOA)
 Uses PennyLane when available; falls back to classical mean-variance
 so the app runs without quantum dependencies.
 """

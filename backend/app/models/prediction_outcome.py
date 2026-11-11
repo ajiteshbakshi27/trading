@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Feature 4: Prediction Failure Autopsy domain model.
+Parakh — Feature 4: Prediction Failure Autopsy domain model.
 
 The loop only closes if failures are recorded as carefully as successes.
 `PredictionRecord` freezes the evidence and feature contributions at issue

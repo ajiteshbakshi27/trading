@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Demo + research overview API.
+Parakh — Demo + research overview API.
 
     GET /api/demo                      the deterministic SIMULATED scenario
     POST /api/demo/run                 walk the full loop on the scenario

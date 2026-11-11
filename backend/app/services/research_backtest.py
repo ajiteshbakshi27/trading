@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Research Backtester.
+Parakh — Research Backtester.
 
 Replays the closed loop over a historical price window so the platform can
 report *measured* results instead of INSUFFICIENT DATA.

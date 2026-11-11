@@ -1,5 +1,5 @@
 """
-QuantPulse AI — News Catalyst API.
+Parakh — News Catalyst API.
 
     GET /api/news                 live news for the whole universe
     GET /api/news?symbols=NVDA,TSLA   live news for specific symbols

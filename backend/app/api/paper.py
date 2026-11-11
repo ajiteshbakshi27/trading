@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Paper Trading API.
+Parakh — Paper Trading API.
 
     GET  /api/paper/portfolio        current state + positions
     POST /api/paper/order             execute a paper order

@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Configuration Management
+Parakh - Configuration Management
 Centralized configuration with environment variable support and secure defaults.
 """
 import os
@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     # API Keys - Social Sentiment
     REDDIT_CLIENT_ID: Optional[str] = Field(default=None, description="Reddit API client ID")
     REDDIT_CLIENT_SECRET: Optional[str] = Field(default=None, description="Reddit API client secret")
-    REDDIT_USER_AGENT: str = Field(default="QuantPulse AI Sentiment Bot v1.0", description="Reddit user agent")
+    REDDIT_USER_AGENT: str = Field(default="Parakh Sentiment Bot v1.0", description="Reddit user agent")
     TWITTER_BEARER_TOKEN: Optional[str] = Field(default=None, description="Twitter API v2 Bearer Token")
     TWITTER_API_KEY: Optional[str] = Field(default=None, description="Twitter API key")
     TWITTER_API_SECRET: Optional[str] = Field(default=None, description="Twitter API secret")

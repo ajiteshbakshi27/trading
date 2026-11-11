@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Feature 5 API: Adaptive Signal Tournament.
+Parakh — Feature 5 API: Adaptive Signal Tournament.
 
     POST /api/experiments            create an ablation spec (draft)
     GET  /api/experiments            list experiments
@@ -79,7 +79,7 @@ def matrix(min_n: int = 20):
         "sample_size": m.sample_size,
         "required_sample_size": m.required_sample_size,
         "note": m.note,
-        "caveat": ("Differences are measured inside QuantPulse's fusion function "
+        "caveat": ("Differences are measured inside Parakh's fusion function "
                    "on this window only. They quantify marginal contribution to "
                    "this model, not predictive edge in the market."),
         **mode_block(m.data_mode),

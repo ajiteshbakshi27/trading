@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Phase 2 constitution QA (Playwright).
+Parakh — Phase 2 constitution QA (Playwright).
 Proves: 1440 / 360 / landscape renders, reduced-motion final states,
 keyboard focus visibility, transform+opacity-only animation, LCP/CLS.
 Run:  python scripts/qa_landing.py

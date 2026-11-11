@@ -18,7 +18,7 @@ export default function AuthShell({
   return (
     <div className="relative min-h-[80vh] px-6 py-28">
       <div className="mx-auto w-full max-w-md">
-        <Link href="/" className="inline-flex min-h-11 items-center" aria-label="QuantPulse AI home">
+        <Link href="/" className="inline-flex min-h-11 items-center" aria-label="Parakh home">
           <Wordmark className="text-[15px]" />
         </Link>
         <div className="mk-card mt-6 px-7 py-8">

@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Feature 2: Thesis Stress Lab domain model.
+Parakh — Feature 2: Thesis Stress Lab domain model.
 
 A `Thesis` is a testable hypothesis, not a BUY/SELL label. The Stress Lab
 perturbs the stored evidence under explicit, named rules and re-runs the

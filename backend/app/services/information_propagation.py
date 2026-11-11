@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Feature 1: Information Propagation Engine.
+Parakh — Feature 1: Information Propagation Engine.
 
 Answers "when something happens, how does information move through the market
 layers before the price reacts?" by building a timestamped chain per event:

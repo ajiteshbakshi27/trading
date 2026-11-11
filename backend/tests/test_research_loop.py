@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Research loop tests.
+Parakh — Research loop tests.
 
 Covers the closed loop: event creation, propagation, signal generation,
 thesis creation, stress scenarios, prediction creation, resolution, failure

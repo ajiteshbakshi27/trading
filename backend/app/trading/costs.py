@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Fee / Slippage / Tax pre-trade estimator.
+Parakh - Fee / Slippage / Tax pre-trade estimator.
 Flat, currency-agnostic model (rates from Settings):
   fee      = max(FEE_MIN, notional * FEE_RATE)
   slippage = notional * spread_bps/1e4 * 0.5   (crossing half the spread)

@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Risk Metrics (Sharpe, Sortino, VaR, CVaR)
+Parakh - Risk Metrics (Sharpe, Sortino, VaR, CVaR)
 Classical computation + quantum-VaR placeholder via Monte Carlo.
 """
 from __future__ import annotations

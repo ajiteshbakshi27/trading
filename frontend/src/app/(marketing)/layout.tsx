@@ -2,7 +2,7 @@ import SmoothScroll from "@/components/marketing/SmoothScroll";
 import HydrationFlag from "@/components/HydrationFlag";
 
 export const metadata = {
-  title: "QuantPulse AI — trade the signal, not the crowd",
+  title: "Parakh — test your trade before the market does",
   description:
     "Live trading terminal combining PennyLane quantum portfolio weights, HFT order-flow execution, and social-sentiment fades.",
 };

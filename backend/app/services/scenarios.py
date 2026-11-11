@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Deterministic demo scenario.
+Parakh — Deterministic demo scenario.
 
 `NVDA_EVENT_001` is a *synthetic* scenario, not a record of a real event.
 It exists so the complete loop is demonstrable with no credentials:
@@ -110,7 +110,7 @@ def event_payload() -> Dict[str, Any]:
         "event_type": EventType.AI,
         "category": EventCategory.AI,
         "headline": HEADLINE,
-        "body": ("Synthetic headline used for the QuantPulse demo narrative. "
+        "body": ("Synthetic headline used for the Parakh demo narrative. "
                  "Not a real market event."),
         "detected_at": iso(T0),
         "probability": 0.72,

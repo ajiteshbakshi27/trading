@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Feature 3 API: Event → Asset Transmission.
+Parakh — Feature 3 API: Event → Asset Transmission.
 
     GET /api/events                       list events (alias of information)
     GET /api/events/{id}                  one event

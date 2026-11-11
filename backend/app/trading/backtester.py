@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Backtesting Engine
+Parakh - Backtesting Engine
 Compares Quantum/HFT vs Sentiment vs Buy&Hold on synthetic or CSV price paths.
 """
 from __future__ import annotations

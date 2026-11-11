@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Feature 2: Thesis Stress Lab.
+Parakh — Feature 2: Thesis Stress Lab.
 
 A thesis is a testable hypothesis. This module (a) builds one from stored
 evidence and (b) attacks it under seven named, explicit perturbation rules,

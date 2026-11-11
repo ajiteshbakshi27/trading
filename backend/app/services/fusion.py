@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Signal fusion (the loop's single decision function).
+Parakh — Signal fusion (the loop's single decision function).
 
 One function, `fuse()`, turns normalized Evidence into a direction and a
 confidence. It is called from exactly three places:

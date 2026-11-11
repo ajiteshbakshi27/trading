@@ -1,5 +1,5 @@
 """
-QuantPulse AI — News Catalyst Engine.
+Parakh — News Catalyst Engine.
 
 Fetches live financial headlines via the Alpha Vantage NEWS_SENTIMENT
 function and tags each with AI sentiment (Bullish/Bearish/Neutral) so the UI
@@ -166,7 +166,7 @@ def fetch_news(symbols: Optional[List[str]] = None,
             items.append({
                 "title": title,
                 "url": "",
-                "source": "QuantPulse mock wire",
+                "source": "Parakh mock wire",
                 "published_at": "",
                 "summary": "Synthetic headline for offline demonstration.",
                 "tickers": [sym],

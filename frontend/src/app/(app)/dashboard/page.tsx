@@ -92,7 +92,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div className="section-label">QuantPulse AI · Sentiment Arbitrage</div>
+          <div className="section-label">Parakh · Sentiment Arbitrage</div>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">
             Nasdaq <span className="text-slate-500">vs</span> Reddit
           </h1>

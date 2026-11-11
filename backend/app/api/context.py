@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Research API context.
+Parakh — Research API context.
 
 Routers read the app-level singletons (HFT manager, sentiment engine,
 prediction agent, stream client) from `app.state.research`, which main.py

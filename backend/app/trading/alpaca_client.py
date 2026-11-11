@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Alpaca Paper Trading Client
+Parakh - Alpaca Paper Trading Client
 Wraps alpaca-py; dry-run mock when keys are missing.
 """
 from __future__ import annotations

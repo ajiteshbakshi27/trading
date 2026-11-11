@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Persistent Storage (Phase 2)
+Parakh - Persistent Storage (Phase 2)
 Supabase/Postgres primary via DATABASE_URL, SQLite local fallback.
 
 Design rules:

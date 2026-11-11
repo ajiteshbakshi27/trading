@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Divergence Engine (Smart Money vs Ape Money).
+Parakh — Divergence Engine (Smart Money vs Ape Money).
 
 Contrasts institutional market reality (Alpha Vantage price/volume/order flow)
 against retail Reddit sentiment (PRAW or mock) to surface tickers where the

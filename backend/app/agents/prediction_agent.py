@@ -1,5 +1,5 @@
 """
-QuantPulse AI - Prediction Market Arbitrage Engine
+Parakh - Prediction Market Arbitrage Engine
 Compares crowd-implied probabilities (Polymarket/Kalshi schema)
 against Quantum model fair odds to flag mispricings.
 Mock feed included so UI works without API keys.

@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Reddit Extractor API.
+Parakh — Reddit Extractor API.
 
     GET /api/reddit/extract?subreddits=wallstreetbets,stocks&limit=25
     GET /api/reddit/extract?symbol=NVDA

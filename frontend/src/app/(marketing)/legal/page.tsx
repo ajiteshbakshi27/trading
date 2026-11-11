@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Legal & risk",
-  description: "Risk disclosure, privacy and terms for the QuantPulse AI terminal.",
+  description: "Risk disclosure, privacy and terms for the Parakh terminal.",
 };
 
 export default function LegalPage() {
@@ -14,7 +14,7 @@ export default function LegalPage() {
         <section>
           <h2 className="text-base font-semibold text-fg">Not investment advice</h2>
           <p className="mt-2">
-            QuantPulse AI is an engineering demonstration. Signals, allocations, projected returns and
+            Parakh is an engineering demonstration. Signals, allocations, projected returns and
             drawdown figures are model output, not predictions or advice. Backtests run on simulated
             and delayed data. Do not trade real money on the output of this software.
           </p>

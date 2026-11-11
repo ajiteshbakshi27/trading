@@ -25,10 +25,12 @@ LEADERBOARD_FLOOR = 10
 
 def canonical_terms(row: ThesisCheckRow) -> Dict[str, Any]:
     report = json.loads(row.report or "{}")
+    # Prices/confidence as fixed-decimal strings so any language (incl. the
+    # browser) re-serialises them byte-for-byte identically.
     return {"id": row.id, "symbol": row.symbol, "direction": row.direction,
-            "entry_price": row.entry_price, "target_price": row.target_price,
-            "stop_price": row.stop_price, "horizon_days": row.horizon_days,
-            "user_confidence": row.user_confidence, "idea_text": row.idea_text,
+            "entry_price": f"{row.entry_price:.2f}", "target_price": f"{row.target_price:.2f}",
+            "stop_price": f"{row.stop_price:.2f}", "horizon_days": int(row.horizon_days),
+            "user_confidence": f"{row.user_confidence:.2f}", "idea_text": row.idea_text,
             "priced_on": report.get("as_of", ""),
             "created_at": row.created_at.replace(tzinfo=None).isoformat(timespec="seconds")}
 

@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Paper Trading Engine.
+Parakh — Paper Trading Engine.
 
 A virtual ledger that turns research theses into paper orders with real P&L
 tracking. No real money moves; everything is simulated and labelled MOCK.

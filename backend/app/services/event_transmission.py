@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Feature 3: Event → Asset Transmission Map.
+Parakh — Feature 3: Event → Asset Transmission Map.
 
 Builds EVENT → THEME → ASSET instead of "prediction market → BUY NVDA".
 
@@ -44,7 +44,7 @@ THEMES: Dict[str, Theme] = {
         theme_id="ai-infrastructure", name="AI infrastructure",
         category=EventCategory.AI,
         description=("Compute, networking and accelerator demand; the theme "
-                     "QuantPulse tracks most densely."),
+                     "Parakh tracks most densely."),
         member_symbols=["NVDA", "AMD", "MSFT", "AMZN", "GOOGL", "META"],
     ),
     "semiconductors": Theme(

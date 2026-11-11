@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Research truth layer.
+Parakh — Research truth layer.
 
 Every record that leaves the API carries its provenance. This module owns the
 vocabulary the product uses to describe what it does and does not know, so no

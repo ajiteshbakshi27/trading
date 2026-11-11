@@ -1,52 +1,79 @@
-# Render Blueprint for QuantPulse AI backend.
-# Apply via Render Dashboard → New → Blueprint → point at this repo.
-# Then set the env vars listed in backend/.env.example as "Environment Variables"
-# (mark SUPABASE_SERVICE_KEY / ALPACA_SECRET_KEY / REDDIT_CLIENT_SECRET secret).
+# Render Blueprint for the Parakh backend.
+# Render Dashboard → New → Blueprint → point at this repo, then fill the
+# sync:false secrets in the dashboard. See SETUP.md for every step.
 services:
   - type: web
-    name: quantpulse-api
+    name: parakh-api
     runtime: python
     rootDir: backend
     buildCommand: "pip install -r requirements.txt"
-    # Single worker: HFT simulator + OFI state live in process memory.
-    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1"
+    # Shared state lives in Redis, so Parakh routes scale across workers.
+    # Labs' in-process HFT simulator is the only per-process state left.
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2"
     healthCheckPath: /health
     envVars:
       - key: ENVIRONMENT
         value: production
-      - key: ALPACA_BASE_URL
-        value: https://paper-api.alpaca.markets
       - key: REDIS_URL
         fromService:
           type: redis
-          name: quantpulse-cache
+          name: parakh-cache
           property: connectionString
-    # Create once, then paste secrets in the dashboard (sync: false = manual):
-      - key: ALPACA_API_KEY
+      - key: PUBLIC_APP_URL
+        sync: false # https://<your-app>.vercel.app
+      - key: CORS_ORIGINS
+        sync: false # https://<your-app>.vercel.app
+      - key: SUPABASE_URL
         sync: false
-      - key: ALPACA_SECRET_KEY
+      - key: DATABASE_URL
         sync: false
-      - key: FINANCIAL_DATA_API_KEY
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: KITE_API_KEY
+        sync: false
+      - key: KITE_API_SECRET
+        sync: false
+      - key: TOKEN_ENCRYPTION_KEY
         sync: false
       - key: REDDIT_CLIENT_ID
         sync: false
       - key: REDDIT_CLIENT_SECRET
         sync: false
-      - key: TWITTER_BEARER_TOKEN
+      - key: TELEGRAM_BOT_TOKEN
         sync: false
-      - key: KALSHI_API_KEY
+      - key: CRON_SECRET
         sync: false
-      - key: DATABASE_URL
+      - key: ADMIN_EMAILS
         sync: false
-      - key: SUPABASE_URL
+
+  # Hype alerts every 30 min during market hours (IST 09:15–15:30 = 03:45–10:00 UTC), Mon–Fri.
+  - type: cron
+    name: parakh-hype-alerts
+    runtime: python
+    rootDir: backend
+    schedule: "*/30 4-10 * * 1-5"
+    buildCommand: "pip install httpx"
+    startCommand: "python -c \"import os,httpx; httpx.post(os.environ['API_URL']+'/api/parakh/jobs/hype-alerts', headers={'X-Cron-Secret': os.environ['CRON_SECRET']}, timeout=120)\""
+    envVars:
+      - key: API_URL
+        sync: false # https://parakh-api.onrender.com
+      - key: CRON_SECRET
         sync: false
-      - key: SUPABASE_ANON_KEY
+
+  # Resolve open ideas after the close (16:30 IST = 11:00 UTC), Mon–Fri.
+  - type: cron
+    name: parakh-resolve
+    runtime: python
+    rootDir: backend
+    schedule: "0 11 * * 1-5"
+    buildCommand: "pip install httpx"
+    startCommand: "python -c \"import os,httpx; httpx.post(os.environ['API_URL']+'/api/parakh/jobs/resolve', headers={'X-Cron-Secret': os.environ['CRON_SECRET']}, timeout=300)\""
+    envVars:
+      - key: API_URL
         sync: false
-      - key: SUPABASE_SERVICE_KEY
+      - key: CRON_SECRET
         sync: false
-      - key: CORS_ORIGINS
-        sync: false # set to https://<your-app>.vercel.app after Vercel deploy
 
   - type: redis
-    name: quantpulse-cache
+    name: parakh-cache
     ipAllowList: [] # internal only

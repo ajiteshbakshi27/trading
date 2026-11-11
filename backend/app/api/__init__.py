@@ -1,5 +1,5 @@
 """
-QuantPulse AI — Research API routers.
+Parakh — Research API routers.
 
 Each router is included by app.main; none of them replaces an existing route.
 All responses carry a data_mode block so the UI never has to guess whether it
