@@ -103,3 +103,10 @@ class AlertLogRow(SQLModel, table=True):
     message: str
     delivered: bool = False
     created_at: datetime = Field(default_factory=_now, index=True)
+
+
+class UserRulesRow(SQLModel, table=True):
+    __tablename__ = "parakh_user_rules"
+    user_id: str = Field(primary_key=True)
+    rules: str = "{}"                  # JSON: the trader's own rules (see rules.py)
+    updated_at: datetime = Field(default_factory=_now)

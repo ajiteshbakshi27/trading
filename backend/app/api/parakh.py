@@ -14,8 +14,8 @@ from pydantic import BaseModel, Field
 from app.config import get_settings
 from app.core import state_store
 from app.core.auth import User, optional_user, require_user
-from app.parakh import (autopsy, brief, copilot, hype_radar, india_events, journal, kite, llm, market,
-                        options, sample, share, store, strategy_backtest, thesis_check, theses, universe,
+from app.parakh import (autopsy, brief, calibration, copilot, hype_radar, india_events, journal, kite, llm, market,
+                        options, rules, sample, share, store, strategy_backtest, thesis_check, theses, universe,
                         xray)
 
 router = APIRouter(prefix="/api/parakh", tags=["parakh"])
@@ -122,6 +122,7 @@ def _run_check(req: CheckRequest) -> Dict[str, Any]:
 def check(req: CheckRequest, user: User = Depends(limit("check", 15))):
     report = _run_check(req)
     label = report.pop("_label")
+    report["rules"] = rules.check_idea(store.get_rules(user.id), report)
     if req.save:
         row = theses.create(user.id, report, label)
         report["thesis_id"] = row.id
@@ -220,6 +221,14 @@ def _xray_of(trades: List[Any], is_sample: bool = False) -> Dict[str, Any]:
 def journal_xray(user: User = Depends(require_user)):
     """Where this user's losses cluster, from their imported trades."""
     return _xray_of(store.list_trades(user.id))
+
+
+@router.get("/public/sample-score")
+def sample_score():
+    """Confidence score of an invented trader, so visitors can see the chart."""
+    ideas = sample.resolved_ideas()
+    out = calibration.compute([(p, y) for _, p, y in ideas], ideas)
+    return {"sample": True, "sample_label": sample.SCORE_LABEL, **out}
 
 
 @router.get("/public/sample-tradebook.csv", response_class=PlainTextResponse)
@@ -418,6 +427,51 @@ def put_user_settings(req: SettingsRequest, user: User = Depends(require_user)):
     for k, v in data.items():
         setattr(row, k, v)
     return store.dump(store.save_settings_row(row))
+
+
+# -------------------------------------------------------------- rules ------
+
+class RulesRequest(BaseModel):
+    """The trader's own rules. A missing / null field means that rule is off."""
+    min_reward_risk: Optional[float] = Field(None, ge=0.5, le=10)
+    with_trend_only: Optional[bool] = None
+    min_checklist_score: Optional[int] = Field(None, ge=1, le=100)
+    max_trades_per_day: Optional[int] = Field(None, ge=1, le=50)
+    stop_after_losses: Optional[int] = Field(None, ge=1, le=20)
+    cool_off_minutes: Optional[int] = Field(None, ge=5, le=240)
+
+
+@router.get("/rules")
+def get_rules(user: User = Depends(require_user)):
+    return {"rules": rules.clean(store.get_rules(user.id))}
+
+
+@router.put("/rules")
+def put_rules(req: RulesRequest, user: User = Depends(require_user)):
+    return {"rules": store.save_rules(user.id, rules.clean(req.model_dump()))}
+
+
+@router.get("/rules/discipline")
+def rules_discipline(user: User = Depends(require_user)):
+    trips = journal.round_trips(store.list_trades(user.id))
+    return rules.discipline(store.get_rules(user.id), trips)
+
+
+# ------------------------------------------------------------ account ------
+
+@router.get("/account/export")
+def account_export(user: User = Depends(limit("export", 5))):
+    """Everything Parakh stores about the signed-in user, as JSON."""
+    return {"exported_for": user.id, "note": "Broker access tokens are never exported.",
+            **store.export_user_data(user.id)}
+
+
+@router.delete("/account/data")
+def account_delete(confirm: str = Query(""), user: User = Depends(limit("delete", 3))):
+    """Delete all of the user's Parakh data. The login itself lives in Supabase Auth."""
+    if confirm != "DELETE":
+        raise HTTPException(status_code=400, detail="Type DELETE to confirm.")
+    return {"deleted": store.delete_user_data(user.id)}
 
 
 # ------------------------------------------------------------ broker -------

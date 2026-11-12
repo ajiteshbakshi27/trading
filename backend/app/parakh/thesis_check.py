@@ -28,6 +28,7 @@ from app.parakh import llm, market, universe
 
 MC_PATHS = 2000
 ANALOGUE_FLOOR = 15
+UNREALISTIC_CAP = 35     # score ceiling when the target needs > 3x a typical move
 
 
 # --------------------------------------------------------------------------
@@ -240,11 +241,19 @@ def build_report(idea: ParsedIdea) -> Dict[str, Any]:
         down_trend = entry < s50 < s200
         with_trend = (long and up_trend) or (not long and down_trend)
         against = (long and down_trend) or (not long and up_trend)
+        if up_trend or down_trend:
+            shape = ("Your idea goes with the trend." if with_trend
+                     else "Your idea fights the trend — these fail more often.")
+        elif entry > s50 and entry > s200:
+            shape = ("Price is above both averages, but the 50-day is still below the 200-day, "
+                     "so the up-trend is not confirmed yet.")
+        elif entry < s50 and entry < s200:
+            shape = ("Price is below both averages, but the 50-day is still above the 200-day, "
+                     "so the down-trend is not confirmed yet.")
+        else:
+            shape = "Price is between its two averages: no clear trend."
         checks.append(_check("trend", "Trend", "pass" if with_trend else "fail" if against else "warn",
-            f"Price {_fmt(entry)} vs 50-day avg {_fmt(s50)} and 200-day avg {_fmt(s200)}. "
-            + ("Your idea goes with the trend." if with_trend else
-               "Your idea fights the trend — these fail more often." if against else
-               "No clear trend; the idea relies on a change of direction.")))
+            f"Price {_fmt(entry)} vs 50-day avg {_fmt(s50)} and 200-day avg {_fmt(s200)}. " + shape))
     checks.append(_check("momentum", "Recent momentum",
         "pass" if (mom20 > 0) == long else "warn",
         f"Last 20 trading days: {mom20 * 100:+.1f}%."))
@@ -252,13 +261,17 @@ def build_report(idea: ParsedIdea) -> Dict[str, Any]:
     checks.append(_check("stretch", "Stretched?", "warn" if stretched else "pass",
         f"RSI(14) is {rsi:.0f}. " + ("Already stretched in your direction — late entries often get shaken out."
                                      if stretched else "Not stretched.")))
-    checks.append(_check("reward_risk", "Reward : risk", "pass" if rr >= 2 else "warn" if rr >= 1.3 else "fail",
-        f"Risking {_fmt(risk)} to make {_fmt(reward)} → {rr:.1f} : 1."))
+    need_sigma = reward / exp_move if exp_move else 0
+    far = need_sigma > 2      # a far-off target makes reward:risk look good on paper only
+    checks.append(_check("reward_risk", "Reward : risk",
+        "fail" if rr < 1.3 else "warn" if (rr < 2 or far) else "pass",
+        f"Risking {_fmt(risk)} to make {_fmt(reward)} → {rr:.1f} : 1."
+        + (" This only looks good because the target is very far away (see Target realism)."
+           if far and rr >= 2 else "")))
     stop_atr = risk / atr if atr else 0
     checks.append(_check("stop_noise", "Stop vs daily noise", "fail" if stop_atr < 1 else "warn" if stop_atr < 1.3 else "pass",
         f"Stop is {stop_atr:.1f}× the average daily range ({_fmt(atr)}). "
         + ("Normal daily noise can hit it." if stop_atr < 1 else "Reasonable room.")))
-    need_sigma = reward / exp_move if exp_move else 0
     checks.append(_check("target_realism", "Target realism",
         "pass" if need_sigma <= 1 else "warn" if need_sigma <= 2 else "fail",
         f"A typical {h}-day move is about ±{_fmt(exp_move)}; your target needs {need_sigma:.1f}× that."))
@@ -326,6 +339,11 @@ def build_report(idea: ParsedIdea) -> Dict[str, Any]:
 
     weights = {"pass": 1.0, "warn": 0.5, "fail": 0.0}
     score = round(100 * sum(weights[c["status"]] for c in checks) / max(1, len(checks)))
+    score_note = ""
+    if need_sigma > 3 and score > UNREALISTIC_CAP:
+        score = UNREALISTIC_CAP
+        score_note = (f"Score held at {UNREALISTIC_CAP}: the target needs {need_sigma:.1f}× a typical "
+                      f"{h}-day move, so the other checks matter little.")
     wrong = [
         f"A daily close {'below' if long else 'above'} {_fmt(stop)} (your stop).",
         f"No move to {_fmt(target)} within {h} trading days — the idea has timed out; exit and re-think.",
@@ -340,7 +358,7 @@ def build_report(idea: ParsedIdea) -> Dict[str, Any]:
         "horizon_days": h, "catalyst": idea.catalyst, "user_confidence": idea.user_confidence,
         "entry_price": round(entry, 2), "target_price": round(target, 2), "stop_price": round(stop, 2),
         "reward_risk": round(rr, 2), "atr": round(atr, 2), "as_of": bars[-1]["date"],
-        "data_mode": mode, "checks": checks, "checklist_score": score,
+        "data_mode": mode, "checks": checks, "checklist_score": score, "score_note": score_note,
         "chance_odds": odds, "analogues": analog, "stress": stress,
         "what_proves_you_wrong": wrong, "fixes": fixes,
         "disclaimer": ("Parakh analyses your own idea. It is not investment advice or a "

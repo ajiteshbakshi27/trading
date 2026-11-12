@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { Card, DataModeTag, StatusPill, Stat, inr, pct } from "./ui";
 
 export type Report = any;
@@ -40,6 +41,7 @@ export default function ThesisReport({ r }: { r: Report }) {
           <div className="text-right">
             <div className={`text-4xl font-bold tabular-nums ${scoreTone}`}>{score}<span className="text-base text-slate-500">/100</span></div>
             <div className="text-[11px] text-slate-500">checklist score (not a prediction)</div>
+            {r.score_note && <div className="mt-1 max-w-[16rem] text-[11px] text-rose-300">{r.score_note}</div>}
           </div>
         </div>
         <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -52,6 +54,27 @@ export default function ThesisReport({ r }: { r: Report }) {
           <ul className="mt-3 space-y-1 text-xs text-amber-300">{r.fixes.map((f: string) => <li key={f}>⚠ {f}</li>)}</ul>
         )}
       </Card>
+
+      {r.rules && (
+        <Card title="Your own rules" action={<Link href="/rules" className="text-xs text-slate-400 underline underline-offset-2">Edit my rules</Link>}>
+          {r.rules.n_rules === 0 ? (
+            <p className="text-sm text-slate-400">You have not set any rules for new ideas yet. Set them once and every check will show if the idea stays inside them.</p>
+          ) : (
+            <>
+              <p className={`text-lg font-semibold ${r.rules.n_broken ? "text-rose-300" : "text-emerald-300"}`}>{r.rules.verdict}</p>
+              <ul className="mt-2 space-y-1.5">
+                {r.rules.results.map((x: any) => (
+                  <li key={x.id} className="flex items-start gap-2 text-sm">
+                    <span className={`mt-0.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ${x.kept ? "bg-emerald-500/15 text-emerald-300" : "bg-rose-500/15 text-rose-300"}`}>{x.kept ? "Kept" : "Broken"}</span>
+                    <span className="text-slate-200">{x.title} <span className="text-slate-400">· {x.detail}</span></span>
+                  </li>
+                ))}
+              </ul>
+              <p className="mt-2 text-[11px] text-slate-500">These are rules you wrote. Parakh only checks them; the decision is yours.</p>
+            </>
+          )}
+        </Card>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-5">
         <Card title="The checklist" className="lg:col-span-3">

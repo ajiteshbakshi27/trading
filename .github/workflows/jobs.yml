@@ -1,0 +1,27 @@
+# Parakh scheduled jobs, run for free by GitHub Actions.
+# Needs two repository secrets (GitHub -> repo -> Settings -> Secrets and
+# variables -> Actions): PARAKH_API_URL (e.g. https://parakh-api.onrender.com)
+# and PARAKH_CRON_SECRET (same value as CRON_SECRET on the server).
+# Until both are set, the jobs skip quietly.
+name: scheduled-jobs
+on:
+  schedule:
+    - cron: "0 11 * * 1-5"      # 16:30 IST, after the close: resolve open ideas
+    - cron: "15 4-10 * * 1-5"   # hourly in market hours: hype alerts
+  workflow_dispatch:
+permissions: {}
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      API_URL: ${{ secrets.PARAKH_API_URL }}
+      CRON_SECRET: ${{ secrets.PARAKH_CRON_SECRET }}
+    steps:
+      - name: Call the job
+        run: |
+          if [ -z "$API_URL" ] || [ -z "$CRON_SECRET" ]; then echo "Secrets not set; skipping."; exit 0; fi
+          if [ "${{ github.event.schedule }}" = "15 4-10 * * 1-5" ]; then JOB=hype-alerts; else JOB=resolve; fi
+          # Wake the free server first (it sleeps when idle), then call the job.
+          curl -sS -m 120 -o /dev/null "$API_URL/health" || true
+          curl -sS -m 300 --fail -X POST -H "X-Cron-Secret: $CRON_SECRET" "$API_URL/api/parakh/jobs/$JOB"

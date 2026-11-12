@@ -16,6 +16,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         <nav className="flex flex-wrap items-center gap-4 text-sm text-slate-300">
           <Link href="/xray" className="hover:text-white">Tradebook X-ray</Link>
           <Link href="/try" className="hover:text-white">Check a trade</Link>
+          <Link href="/sample-score" className="hover:text-white">Sample score</Link>
           <Link href="/login" className="hover:text-white">Log in</Link>
           <Link href="/signup" className="rounded-lg bg-emerald-500 px-3 py-1.5 font-semibold text-black hover:bg-emerald-400">Sign up free</Link>
         </nav>
@@ -24,7 +25,8 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <footer className="mx-auto max-w-5xl px-4 pb-16 text-[11px] leading-relaxed text-slate-500">
         Parakh is an analysis and journaling tool. It is not a SEBI-registered investment adviser or research
         analyst and does not recommend buying or selling any security. Historical patterns and simulations do not
-        guarantee future results. Trading in equities and derivatives involves risk of loss.
+        guarantee future results. Trading in equities and derivatives involves risk of loss.{" "}
+        <Link href="/legal" className="underline underline-offset-2 hover:text-slate-300">Privacy and risk</Link>
       </footer>
     </div>
   );

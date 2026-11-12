@@ -103,3 +103,26 @@ def tradebook_csv() -> str:
         lines.append(f"{sym},INE000000000,{t:%Y-%m-%d},NSE,EQ,EQ,{side},false,{qty},{price:.2f},"
                      f"S{n:06d},O{(n + 1) // 2:06d},{t:%Y-%m-%dT%H:%M:%S}")
     return "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# Sample confidence record (for the public "sample score" page)
+# ---------------------------------------------------------------------------
+SCORE_LABEL = ("Sample ideas: an invented trader's record, for demonstration. "
+               "Not real ideas, not real results.")
+
+#: stated confidence -> (ideas, how many came true). Fixed counts, so the
+#: sample is the same on every run. Overconfident on purpose: the surer this
+#: invented trader sounds, the bigger the gap.
+_BANDS = {0.55: (8, 5), 0.65: (10, 6), 0.75: (12, 7), 0.85: (12, 6), 0.95: (6, 3)}
+
+
+@lru_cache(maxsize=1)
+def resolved_ideas() -> Tuple[Tuple[str, float, int], ...]:
+    """(resolved date, stated confidence, hit 0/1) for 48 invented ideas."""
+    rng = random.Random(SEED + 1)
+    flat = [(conf, 1 if k < hits else 0) for conf, (n, hits) in _BANDS.items() for k in range(n)]
+    rng.shuffle(flat)
+    days = _days()
+    return tuple((days[min(len(days) - 1, 8 + i)].isoformat(), conf, hit)
+                 for i, (conf, hit) in enumerate(flat))

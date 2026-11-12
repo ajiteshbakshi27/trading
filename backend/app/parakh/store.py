@@ -9,7 +9,7 @@ from sqlmodel import Session, select
 
 from app import database as db
 from app.parakh.models import (AlertLogRow, BrokerConnectionRow, JournalTradeRow,
-                               ThesisCheckRow, UserSettingsRow, WatchlistRow)
+                               ThesisCheckRow, UserRulesRow, UserSettingsRow, WatchlistRow)
 
 
 def session() -> Session:
@@ -199,3 +199,55 @@ def list_alerts(user_id: str, limit: int = 50) -> List[AlertLogRow]:
     with session() as s:
         return list(s.exec(select(AlertLogRow).where(AlertLogRow.user_id == user_id)
                            .order_by(AlertLogRow.created_at.desc()).limit(limit)))
+
+
+# rules ---------------------------------------------------------------------
+
+def get_rules(user_id: str) -> Dict[str, Any]:
+    with session() as s:
+        row = s.get(UserRulesRow, user_id)
+        raw = row.rules if row else "{}"
+    try:
+        return json.loads(raw)
+    except ValueError:
+        return {}
+
+
+def save_rules(user_id: str, rules: Dict[str, Any]) -> Dict[str, Any]:
+    with session() as s:
+        s.merge(UserRulesRow(user_id=user_id, rules=json.dumps(rules),
+                             updated_at=datetime.now(timezone.utc)))
+        s.commit()
+    return rules
+
+
+# account -------------------------------------------------------------------
+
+_USER_TABLES = (("ideas", ThesisCheckRow), ("trades", JournalTradeRow), ("watchlist", WatchlistRow),
+                ("settings", UserSettingsRow), ("rules", UserRulesRow),
+                ("broker_connections", BrokerConnectionRow), ("alerts", AlertLogRow))
+
+
+def export_user_data(user_id: str) -> Dict[str, Any]:
+    """Everything stored for one user. Broker tokens are never included."""
+    out: Dict[str, Any] = {}
+    with session() as s:
+        for name, model in _USER_TABLES:
+            rows = [dump(r) for r in s.exec(select(model).where(model.user_id == user_id))]
+            for r in rows:
+                r.pop("access_token_enc", None)
+            out[name] = rows
+    return out
+
+
+def delete_user_data(user_id: str) -> Dict[str, int]:
+    """Delete every row stored for one user. Returns how many rows went, per table."""
+    counts: Dict[str, int] = {}
+    with session() as s:
+        for name, model in _USER_TABLES:
+            rows = list(s.exec(select(model).where(model.user_id == user_id)))
+            for r in rows:
+                s.delete(r)
+            counts[name] = len(rows)
+        s.commit()
+    return counts

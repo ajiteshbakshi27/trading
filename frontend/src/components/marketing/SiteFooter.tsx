@@ -30,7 +30,7 @@ const COLUMNS = [
     links: [
       { label: "API reference", href: `${API}/docs`, external: true },
       { label: "How it works", href: "/#how" },
-      { label: "Risk disclosure", href: "/legal" },
+      { label: "Privacy and risk", href: "/legal" },
     ],
   },
 ];

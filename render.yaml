@@ -1,39 +1,55 @@
-# Render Blueprint for the Parakh backend.
-# Render Dashboard → New → Blueprint → point at this repo, then fill the
-# sync:false secrets in the dashboard. See SETUP.md for every step.
+# Render Blueprint for the Parakh backend (free plan).
+# Render Dashboard -> New -> Blueprint -> pick this repo, then fill the
+# "sync: false" values in the dashboard. Step-by-step: see DEPLOY.md.
+#
+# Free plan notes:
+# - One worker, state kept in memory. Fine for a demo and first users.
+# - The free server sleeps after ~15 minutes without visitors; the first
+#   request after that takes up to a minute. Open the site before a demo.
+# - The daily jobs (resolve ideas, hype alerts) run from GitHub Actions
+#   (.github/workflows/jobs.yml), because Render cron jobs are paid.
+# When you move to a paid plan: add a Redis service, set REDIS_URL, and
+# raise --workers.
 services:
   - type: web
     name: parakh-api
     runtime: python
+    plan: free
     rootDir: backend
     buildCommand: "pip install -r requirements.txt"
-    # Shared state lives in Redis, so Parakh routes scale across workers.
-    # Labs' in-process HFT simulator is the only per-process state left.
-    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 2"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT --workers 1"
     healthCheckPath: /health
     envVars:
+      - key: PYTHON_VERSION
+        value: "3.12.10"
       - key: ENVIRONMENT
         value: production
-      - key: REDIS_URL
-        fromService:
-          type: redis
-          name: parakh-cache
-          property: connectionString
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
       - key: PUBLIC_APP_URL
         sync: false # https://<your-app>.vercel.app
       - key: CORS_ORIGINS
         sync: false # https://<your-app>.vercel.app
       - key: SUPABASE_URL
         sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
       - key: DATABASE_URL
         sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: TOKEN_ENCRYPTION_KEY
+        sync: false
+      - key: CRON_SECRET
+        sync: false
+      - key: ADMIN_EMAILS
+        sync: false
+      # Optional. Leave empty until you use them.
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: KITE_API_KEY
         sync: false
       - key: KITE_API_SECRET
-        sync: false
-      - key: TOKEN_ENCRYPTION_KEY
         sync: false
       - key: REDDIT_CLIENT_ID
         sync: false
@@ -41,39 +57,3 @@ services:
         sync: false
       - key: TELEGRAM_BOT_TOKEN
         sync: false
-      - key: CRON_SECRET
-        sync: false
-      - key: ADMIN_EMAILS
-        sync: false
-
-  # Hype alerts every 30 min during market hours (IST 09:15–15:30 = 03:45–10:00 UTC), Mon–Fri.
-  - type: cron
-    name: parakh-hype-alerts
-    runtime: python
-    rootDir: backend
-    schedule: "*/30 4-10 * * 1-5"
-    buildCommand: "pip install httpx"
-    startCommand: "python -c \"import os,httpx; httpx.post(os.environ['API_URL']+'/api/parakh/jobs/hype-alerts', headers={'X-Cron-Secret': os.environ['CRON_SECRET']}, timeout=120)\""
-    envVars:
-      - key: API_URL
-        sync: false # https://parakh-api.onrender.com
-      - key: CRON_SECRET
-        sync: false
-
-  # Resolve open ideas after the close (16:30 IST = 11:00 UTC), Mon–Fri.
-  - type: cron
-    name: parakh-resolve
-    runtime: python
-    rootDir: backend
-    schedule: "0 11 * * 1-5"
-    buildCommand: "pip install httpx"
-    startCommand: "python -c \"import os,httpx; httpx.post(os.environ['API_URL']+'/api/parakh/jobs/resolve', headers={'X-Cron-Secret': os.environ['CRON_SECRET']}, timeout=300)\""
-    envVars:
-      - key: API_URL
-        sync: false
-      - key: CRON_SECRET
-        sync: false
-
-  - type: redis
-    name: parakh-cache
-    ipAllowList: [] # internal only

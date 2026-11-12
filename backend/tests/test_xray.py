@@ -122,3 +122,22 @@ def test_public_check_saves_nothing_and_is_rate_limited():
     codes = [client.post("/api/parakh/public/check", json={"idea": "TCS will fall"}).status_code
              for _ in range(6)]
     assert 429 in codes
+
+
+def test_sample_score_is_labelled_and_stable():
+    from fastapi.testclient import TestClient
+    from app.main import app
+    c = TestClient(app)
+    a = c.get("/api/parakh/public/sample-score").json()
+    b = c.get("/api/parakh/public/sample-score").json()
+    assert a == b
+    assert a["sample"] is True and "invented" in a["sample_label"]
+    assert a["status"] == "ok" and a["n"] == 48
+    assert a["overconfidence_gap"] > 0.15
+    assert "you are right" in a["band_line"]
+
+
+def test_band_line_needs_five_ideas():
+    from app.parakh import calibration
+    pairs = [(0.85, 0)] * 4 + [(0.55, 1)] * 3 + [(0.55, 0)] * 3
+    assert "band_line" not in calibration.compute(pairs)

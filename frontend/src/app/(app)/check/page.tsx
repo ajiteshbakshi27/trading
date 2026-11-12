@@ -7,7 +7,7 @@ import { Button, Card, ErrorBox, Field, Loading, PageHeader, inputCls } from "@/
 
 const EXAMPLES = [
   "Bank Nifty will rally after the RBI policy, 2 weeks, 70% sure",
-  "HDFC Bank breakout, target 1900 stop 1650, 3 weeks",
+  "HDFC Bank will break out and rise over 3 weeks, 65% sure",
   "I think Infosys will fall after results in 5 days",
 ];
 
@@ -34,7 +34,7 @@ export default function CheckPage() {
       <PageHeader title="Check a trade" subtitle="Describe the trade you're thinking about, in your own words. Parakh tests it against price history, the odds and its own stress rules — before you put money on it." />
       <Card>
         <textarea value={idea} onChange={(e) => setIdea(e.target.value)} rows={3} maxLength={1000}
-          placeholder="e.g. Reliance will rally after the AGM, target 1450, stop 1340, 2 weeks, 75% sure"
+          placeholder="e.g. Reliance will rally after its results, 2 weeks, 75% sure"
           aria-label="Your trade idea" className={inputCls + " resize-y text-base"} />
         <div className="mt-2 flex flex-wrap gap-1.5">
           {EXAMPLES.map((e) => (

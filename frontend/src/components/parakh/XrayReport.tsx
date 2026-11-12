@@ -11,7 +11,9 @@ const TAG: Record<string, { label: string; cls: string }> = {
 };
 
 function Pattern({ p, floor }: { p: any; floor: number }) {
-  const tag = TAG[p.status] || TAG.not_seen;
+  const tag = p.id === "worst_symbol" && p.status === "leak"
+    ? { label: "Worst symbol", cls: "bg-amber-500/15 text-amber-300" }
+    : TAG[p.status] || TAG.not_seen;
   const measured = ["leak", "loss_shape", "no_leak"].includes(p.status);
   return (
     <div className="rounded-xl border border-slate-800/80 bg-white/[0.02] p-4">

@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { api, post } from "@/lib/api";
 import { Button, Card, ErrorBox, Field, Loading, PageHeader, inputCls } from "@/components/parakh/ui";
 
@@ -24,6 +25,28 @@ export default function SettingsPage() {
       setS({ ...s, ...(await post("/api/parakh/settings", body, "PUT")) });
       setOk("Saved.");
     } catch (e: any) { setErr(e.message); } finally { setBusy(false); }
+  };
+  const [confirmText, setConfirmText] = useState("");
+  const [delBusy, setDelBusy] = useState(false);
+  const download = async () => {
+    setErr("");
+    try {
+      const data = await api("/api/parakh/account/export");
+      const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+      const a = document.createElement("a");
+      a.href = url; a.download = "parakh-my-data.json"; a.click();
+      URL.revokeObjectURL(url);
+    } catch (e: any) { setErr(e.message); }
+  };
+  const deleteAll = async () => {
+    setDelBusy(true); setErr(""); setOk("");
+    try {
+      const r = await api<any>("/api/parakh/account/data?confirm=DELETE", { method: "DELETE" });
+      const n = Object.values(r.deleted as Record<string, number>).reduce((a, b) => a + b, 0);
+      setConfirmText("");
+      setS({ ...(await api("/api/parakh/settings")) });
+      setOk(`Deleted. ${n} record${n === 1 ? "" : "s"} removed.`);
+    } catch (e: any) { setErr(e.message); } finally { setDelBusy(false); }
   };
   const disconnect = async () => { await api("/api/parakh/broker/zerodha", { method: "DELETE" }); setS({ ...s, zerodha: { connected: false } }); };
   const connect = async () => { try { window.location.href = (await api<any>("/api/parakh/broker/zerodha/login-url")).url; } catch (e: any) { setErr(e.message); } };
@@ -66,6 +89,25 @@ export default function SettingsPage() {
           </div>
         )}
         <p className="mt-2 text-[11px] text-slate-500">Read-only: Parakh reads your executed trades and never places orders. Zerodha sessions expire each morning.</p>
+      </Card>
+      <Card title="Your data">
+        <p className="text-sm text-slate-300">Everything Parakh stores about you: ideas, trades, rules, settings and alerts.</p>
+        <div className="mt-3"><Button tone="ghost" onClick={download}>Download my data</Button></div>
+        <div className="mt-5 rounded-xl border border-rose-500/30 bg-rose-500/5 p-3">
+          <div className="text-sm font-semibold text-rose-200">Delete all my data</div>
+          <p className="mt-1 text-xs text-slate-400">
+            Removes your ideas, journal trades, rules, settings, alerts and broker connection, now. This cannot be undone.
+            Your login stays, so you can keep using Parakh from a clean start.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <input className={inputCls + " w-44"} value={confirmText} onChange={(e) => setConfirmText(e.target.value)}
+              placeholder="Type DELETE" aria-label="Type DELETE to confirm" />
+            <Button tone="danger" onClick={deleteAll} busy={delBusy} disabled={confirmText !== "DELETE"}>Delete everything</Button>
+          </div>
+        </div>
+        <p className="mt-3 text-[11px] text-slate-500">
+          Read what is stored and who else sees it on the <Link href="/legal#privacy" className="underline underline-offset-2">privacy page</Link>.
+        </p>
       </Card>
       {me && (
         <Card title="Server features">

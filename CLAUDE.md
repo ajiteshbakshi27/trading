@@ -124,3 +124,57 @@ frontend: `cd frontend && npm install && npm run dev` → http://localhost:3000 
 - Phase 1 still to do: deploy (Render + Vercel), demo account with seeded ideas for the
   calibration chart, demo script/slides, backup video.
 - Still off: Kite, Telegram, Reddit, Redis (memory store). Not deployed.
+
+## Session 4 log (2026-11-12, later)
+- Owner gave the UI job to Stitch AI (prompt given in chat, **desktop/laptop-first**; mobile app later).
+  When they bring UI code back, wire it to the existing API. Do not redesign the UI unasked.
+- Browser click-through done on `/xray`, `/try`, `/sample-score` (real Supabase + Gemini + live NSE):
+  no console errors. Fixed: stale example prices in the idea examples (HDFC Bank trades near ₹812 now,
+  the old "target 1900" example gave a silly report), "−₹0" display, worst-symbol card now tagged
+  "Worst symbol" instead of "Losing habit".
+- New: public **sample score** (`sample.resolved_ideas()`, fixed counts, labelled invented;
+  `GET /api/parakh/public/sample-score`; page `/sample-score`). Chart moved to shared
+  `components/parakh/CalibrationView.tsx`. `calibration.compute` now adds `band_line`
+  ("When you say 90–100% sure, you are right 50% of the time", needs 5+ ideas in the band).
+  Decision: NO fake ideas seeded into real accounts; the demo uses the public sample pages.
+- Deploy prepared for **free plans**: `render.yaml` is now one free web service (1 worker, memory
+  store, no Redis, no Render cron). Daily jobs moved to `.github/workflows/jobs.yml` (needs repo
+  secrets `PARAKH_API_URL`, `PARAKH_CRON_SECRET`; only runs from the default branch).
+  Owner steps are in **`DEPLOY.md`**. Not deployed yet: owner must create Render + Vercel accounts.
+- **`DEMO_SCRIPT.md`**: 3-minute hackathon script, judge Q&A, backup-video steps, 5-slide outline.
+- Preview servers for Claude's browser: `D:\.claude\launch.json` (`parakh-api`, `parakh-web`).
+- Tests: 135 pass; `npm run build` passes.
+- Noticed, not fixed: an idea with an absurd target still scores ~62/100 on the checklist; the
+  stress-test box lists many "not applicable" layers (clutter). Signed-in pages (Journal X-ray,
+  Score) still not clicked through with a real login (owner must log in themselves).
+- Phase 1 left: owner deploys (DEPLOY.md), records backup video, makes slides. Then Phase 2.
+
+## Session 5 log (2026-11-12, evening) — first Phase 2 features
+
+Owner asked: "add some more features then push to github".
+
+- **My rules** (`backend/app/parakh/rules.py`, table `parakh_user_rules`, page `/rules`, nav link).
+  Six optional rules the trader sets themselves. Idea rules (min reward:risk, no trades
+  against trend, min checklist score) are checked on every signed-in `/check` and shown in
+  a "Your own rules" card on the report (`report["rules"]`). Trading-day rules (max trades
+  a day, stop after N losses, wait N minutes after a loss) are checked against journal round
+  trips: `GET /api/parakh/rules/discipline` gives a discipline score = share of trading days
+  with no rule broken. Withheld below `MIN_DAYS = 5` trading days. Time rules report
+  `needs_times` when the import has dates only. Same no-counterfactual caveat as the X-ray.
+  Parakh never suggests what a rule value should be.
+- **Download / delete my data**: `GET /api/parakh/account/export` (never includes broker
+  tokens), `DELETE /api/parakh/account/data?confirm=DELETE` (all seven user tables).
+  Settings page has a "Your data" card. The Supabase login itself is NOT deleted (needs the
+  service key; do by hand on request for now).
+- **Privacy page**: `/legal` rewritten for Parakh in plain words (was old QuantPulse text).
+  It says it is not lawyer-reviewed. Get it reviewed before a public launch.
+- **Checker fixes**: reward:risk no longer passes when the target needs > 2× a typical move;
+  score is capped at `UNREALISTIC_CAP = 35` with a `score_note` when the target needs > 3×;
+  trend check text is now correct when price is above/below both averages.
+- Tests: `backend/tests/test_rules.py` (7 new). 142 pass. `tsc` and `npm run build` pass.
+- Browser-checked: `/legal`, and the capped score through the live API. NOT checked with a
+  real login: `/rules`, the rules card on `/check`, the Settings "Your data" card.
+- New table is created by `create_all` on backend start (no manual SQL needed).
+
+Still open for Phase 2: pre-trade gate using today's live trades (needs Zerodha sync),
+Telegram bot + automatic morning brief, voice input, other brokers.

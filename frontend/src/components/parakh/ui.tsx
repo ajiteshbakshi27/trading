@@ -128,7 +128,7 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 
 export const inr = (x: number | null | undefined, d = 2) =>
   x == null || Number.isNaN(x) ? "—"
-    : (x < 0 ? "−₹" : "₹") + Math.abs(Number(x)).toLocaleString("en-IN", { minimumFractionDigits: d, maximumFractionDigits: d });
+    : (x < 0 && Number(Math.abs(x).toFixed(d)) > 0 ? "−₹" : "₹") + Math.abs(Number(x)).toLocaleString("en-IN", { minimumFractionDigits: d, maximumFractionDigits: d });
 
 export const pct = (x: number | null | undefined, d = 0, scale = 100) =>
   x == null ? "—" : `${(x * scale).toFixed(d)}%`;

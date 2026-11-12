@@ -13,6 +13,7 @@ from __future__ import annotations
 from typing import Any, Dict, List, Sequence, Tuple
 
 SCORE_FLOOR = 10
+BAND_FLOOR = 5
 BINS = [(0.5, 0.6), (0.6, 0.7), (0.7, 0.8), (0.8, 0.9), (0.9, 1.01)]
 
 
@@ -50,6 +51,12 @@ def compute(pairs: Sequence[Tuple[float, int]], dated: Sequence[Tuple[str, float
     out.update({"status": "ok", "brier": round(brier, 4), "score": score,
                 "avg_confidence": round(avg_conf, 3), "hit_rate": round(hit_rate, 3),
                 "overconfidence_gap": round(gap, 3), "verdict": verdict})
+    # The single most telling band, in plain words (needs 5+ ideas in the band).
+    wide = [b for b in bins if b["n"] >= BAND_FLOOR and b["stated"] - b["actual"] > 0.1]
+    if wide:
+        b = max(wide, key=lambda b: b["stated"] - b["actual"])
+        out["band_line"] = (f"When you say {b['range']} sure, you are right "
+                            f"{b['actual'] * 100:.0f}% of the time ({b['n']} ideas).")
     if dated:
         series, roll = [], []
         for date, p, y in sorted(dated):
