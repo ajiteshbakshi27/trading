@@ -14,9 +14,15 @@ Everything below is optional; do it in this order when you're ready.
    (Only if your project still uses the legacy JWT secret: also set `SUPABASE_JWT_SECRET`.)
    Tables are created automatically on first boot.
 
-## 2. Claude (copilot, idea parsing, autopsy narratives)
-console.anthropic.com → API keys → set `ANTHROPIC_API_KEY` on the backend.
-Without it, Parakh uses its rule-based parser and copilot.
+## 2. AI model (copilot, idea parsing, autopsy narratives)
+Pick one. If both are set, Claude is used.
+- **Free:** Google Gemini. aistudio.google.com/apikey → Create API key → set
+  `GEMINI_API_KEY` on the backend (`GEMINI_MODEL` defaults to `gemini-3.5-flash-lite`).
+  The free tier has daily limits, and Google may use free-tier prompts to improve
+  its models, so don't rely on it for private user data at launch.
+- **Paid:** Claude. console.anthropic.com → API keys → set `ANTHROPIC_API_KEY`.
+
+Without either, Parakh uses its rule-based parser and copilot.
 
 ## 3. Zerodha Kite Connect (trade sync)
 1. developers.kite.trade → create an app. Redirect URL:

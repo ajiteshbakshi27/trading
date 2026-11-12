@@ -2,10 +2,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { api, post } from "@/lib/api";
 import Autopsy from "@/components/parakh/Autopsy";
+import XrayReport from "@/components/parakh/XrayReport";
 import { Button, Card, Empty, ErrorBox, Loading, PageHeader, Stat, inr, signedPct } from "@/components/parakh/ui";
 
 export default function JournalPage() {
   const [data, setData] = useState<any>(null);
+  const [xray, setXray] = useState<any>(null);
   const [err, setErr] = useState("");
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState(false);
@@ -15,6 +17,7 @@ export default function JournalPage() {
 
   const load = useCallback(() => {
     api("/api/parakh/journal").then(setData).catch((e) => setErr(e.message));
+    api("/api/parakh/journal/xray").then(setXray).catch(() => setXray(null));
   }, []);
   useEffect(load, [load]);
 
@@ -67,7 +70,7 @@ export default function JournalPage() {
       </Card>
       <ErrorBox message={err} />
       {!data ? <Loading /> : data.trades === 0 ? (
-        <Empty>No trades yet. Upload a tradebook CSV to see your stats and autopsies.</Empty>
+        <Empty>No trades yet. Upload a tradebook CSV to see your stats, X-ray and autopsies. Want to see what it looks like first?{" "}<a href="/xray" className="text-sky-300 underline underline-offset-2">Open the X-ray with a sample tradebook</a>.</Empty>
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4 lg:grid-cols-6">
@@ -82,6 +85,12 @@ export default function JournalPage() {
             <Card title="What your trades say about you">
               <ul className="list-disc space-y-1.5 pl-4 text-sm text-slate-200">{s.insights.map((i: string) => <li key={i}>{i}</li>)}</ul>
             </Card>
+          )}
+          {xray && (
+            <div>
+              <h2 className="mb-2 text-sm font-semibold text-slate-200">Tradebook X-ray: where your losses come from</h2>
+              <XrayReport data={xray} />
+            </div>
           )}
           {autopsy && <Autopsy a={autopsy.a} />}
           <Card title={`Closed trades (${data.round_trips.length})`} className="overflow-x-auto">

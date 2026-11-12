@@ -50,7 +50,7 @@ export default function QuantCopilot() {
               <div>
                 <div className="flex items-center gap-2 font-bold"><Bot className="h-5 w-5 text-emerald-400" /> Ask Parakh</div>
                 <div className="text-[11px] text-slate-500">
-                  {mode === "claude" ? "Powered by Claude · reads your ideas & journal" : "Analysis of your own ideas — not investment advice"}
+                  {mode === "claude" ? "Powered by Claude · reads your ideas & journal" : mode === "gemini" ? "Powered by Gemini · reads your ideas & journal" : "Analysis of your own ideas — not investment advice"}
                 </div>
               </div>
               <button onClick={() => setOpen(false)} title="Close" className="rounded-lg p-1 hover:bg-white/10"><X className="h-5 w-5" /></button>

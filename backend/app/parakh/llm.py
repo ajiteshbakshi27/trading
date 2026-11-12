@@ -1,9 +1,12 @@
 """
-Parakh — Claude integration.
+Parakh — AI layer (Claude, or Google Gemini as the free option).
 
-Optional: everything in Parakh works without ANTHROPIC_API_KEY (rule-based
-fallbacks). With a key, Claude parses free-text trade ideas, writes plain
-language autopsies and powers the copilot.
+Optional: everything in Parakh works with no AI key (rule-based fallbacks).
+With a key, the model parses free-text trade ideas, writes plain language
+autopsies and powers the copilot.
+
+Provider: ANTHROPIC_API_KEY set -> Claude. Otherwise GEMINI_API_KEY set ->
+Gemini (see ``gemini.py``). Neither -> rules only.
 
 Server-side refusal fallback is enabled (``fallbacks="default"``) so a
 declined request is retried on a fallback model inside the same call.
@@ -16,6 +19,7 @@ from typing import Any, Dict, List, Optional, Type, TypeVar
 from pydantic import BaseModel
 
 from app.config import get_settings
+from app.parakh import gemini
 
 log = logging.getLogger("parakh.llm")
 T = TypeVar("T", bound=BaseModel)
@@ -36,8 +40,17 @@ SYSTEM_GUARDRAILS = (
 _client = None
 
 
+def provider() -> Optional[str]:
+    """Which AI backend is active: "claude", "gemini" or None."""
+    if get_settings().ANTHROPIC_API_KEY:
+        return "claude"
+    if gemini.available():
+        return "gemini"
+    return None
+
+
 def available() -> bool:
-    return bool(get_settings().ANTHROPIC_API_KEY)
+    return provider() is not None
 
 
 def client():
@@ -61,8 +74,11 @@ def _text_of(resp: Any) -> str:
 def parse(prompt: str, schema: Type[T], system: str = SYSTEM_GUARDRAILS,
           effort: str = "low") -> Optional[T]:
     """Structured extraction. Returns None on any failure (caller falls back)."""
-    if not available():
+    who = provider()
+    if who is None:
         return None
+    if who == "gemini":
+        return gemini.parse(prompt, schema, system)
     try:
         resp = client().beta.messages.parse(
             model=model(), max_tokens=4000, system=system,
@@ -81,8 +97,11 @@ def parse(prompt: str, schema: Type[T], system: str = SYSTEM_GUARDRAILS,
 def write(prompt: str, system: str = SYSTEM_GUARDRAILS, effort: str = "low",
           max_tokens: int = 4000) -> Optional[str]:
     """Free-text generation (summaries, autopsy narratives, briefs)."""
-    if not available():
+    who = provider()
+    if who is None:
         return None
+    if who == "gemini":
+        return gemini.write(prompt, system, max_tokens=max_tokens)
     try:
         resp = client().beta.messages.create(
             model=model(), max_tokens=max_tokens, system=system,
@@ -104,8 +123,11 @@ def run_tools(messages: List[Dict[str, Any]], tools: List[Dict[str, Any]],
 
     Returns {"answer": str, "tools_used": [...]} or None when unavailable.
     """
-    if not available():
+    who = provider()
+    if who is None:
         return None
+    if who == "gemini":
+        return gemini.run_tools(messages, tools, execute, system, max_turns=max_turns)
     used: List[str] = []
     msgs = list(messages)
     try:

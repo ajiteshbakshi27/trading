@@ -36,7 +36,8 @@ export default function LandingPage() {
           </p>
           <div className="mt-9 flex flex-wrap gap-3">
             <Link href="/signup" className="mk-btn mk-btn-primary">Check your first trade free <ArrowRight className="h-4 w-4" /></Link>
-            <Link href="/check" className="mk-btn mk-btn-ghost">Try it now</Link>
+            <Link href="/xray" className="mk-btn mk-btn-ghost">X-ray your tradebook</Link>
+            <Link href="/try" className="mk-btn mk-btn-ghost">Try a trade check</Link>
           </div>
           <p className="mt-6 text-xs text-fg-muted">Not tips. Not advice. A second opinion on your own ideas, backed by data.</p>
         </section>

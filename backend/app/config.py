@@ -81,6 +81,8 @@ class Settings(BaseSettings):
     # Parakh product settings
     ANTHROPIC_API_KEY: Optional[str] = Field(default=None, description="Claude API key for the copilot + thesis parser")
     CLAUDE_MODEL: str = Field(default="claude-opus-5-5", description="Claude model id")
+    GEMINI_API_KEY: Optional[str] = Field(default=None, description="Google Gemini API key (free tier). Used when ANTHROPIC_API_KEY is unset")
+    GEMINI_MODEL: str = Field(default="gemini-3.5-flash-lite", description="Gemini model id")
     KITE_API_KEY: Optional[str] = Field(default=None, description="Zerodha Kite Connect API key")
     KITE_API_SECRET: Optional[str] = Field(default=None, description="Zerodha Kite Connect API secret")
     TOKEN_ENCRYPTION_KEY: Optional[str] = Field(default=None, description="Fernet key that encrypts stored broker tokens")
@@ -156,7 +158,7 @@ class Settings(BaseSettings):
         "TWITTER_BEARER_TOKEN", "TWITTER_API_KEY", "TWITTER_API_SECRET",
         "TWITTER_ACCESS_TOKEN", "TWITTER_ACCESS_SECRET", "POLYMARKET_API_KEY",
         "KALSHI_API_KEY", "KALSHI_PRIVATE_KEY", "DATABASE_URL", "SUPABASE_URL",
-        "SUPABASE_JWT_SECRET", "ANTHROPIC_API_KEY", "KITE_API_KEY", "KITE_API_SECRET",
+        "SUPABASE_JWT_SECRET", "ANTHROPIC_API_KEY", "GEMINI_API_KEY", "KITE_API_KEY", "KITE_API_SECRET",
         "TOKEN_ENCRYPTION_KEY", "CRON_SECRET",
         "SUPABASE_ANON_KEY", "SUPABASE_SERVICE_KEY", "TELEGRAM_BOT_TOKEN",
         "TELEGRAM_CHAT_ID", "DISCORD_WEBHOOK_URL", "COPILOT_LLM_URL", "COPILOT_LLM_KEY",
@@ -217,6 +219,7 @@ class Settings(BaseSettings):
             "supabase": "live" if self.has_supabase else "mock",
             "alerts": "live" if self.has_alerts else "mock",
             "claude": "live" if self.ANTHROPIC_API_KEY else "off",
+            "gemini": "live" if self.GEMINI_API_KEY else "off",
             "zerodha_kite": "live" if (self.KITE_API_KEY and self.KITE_API_SECRET) else "off",
         }
 

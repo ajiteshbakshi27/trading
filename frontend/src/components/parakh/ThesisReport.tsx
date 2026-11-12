@@ -32,6 +32,7 @@ export default function ThesisReport({ r }: { r: Report }) {
               </span>
               <DataModeTag mode={r.data_mode} />
               {r.parse_mode === "claude" && <span className="text-[10px] text-slate-500">parsed by Claude</span>}
+              {r.parse_mode === "gemini" && <span className="text-[10px] text-slate-500">parsed by Gemini</span>}
             </div>
             <h2 className="mt-2 text-xl font-bold text-white">{r.name} <span className="text-sm font-normal text-slate-400">({r.symbol})</span></h2>
             <p className="text-xs text-slate-500">Priced on {r.as_of} · {r.horizon_days} trading days{r.catalyst ? ` · catalyst: ${r.catalyst}` : ""}</p>

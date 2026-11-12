@@ -313,11 +313,40 @@ def init_db() -> Dict[str, str]:
         SQLModel.metadata.create_all(get_engine())
         added = _migrate_additive()
         out = {"status": "ok", **engine_info()}
+        locked = _lock_public_api()
+        if locked:
+            out["rls_enabled"] = locked
         if added:
             out["migrations"] = added
         return out
     except Exception as e:
         return {"status": "error", "error": str(e)[:200], **engine_info()}
+
+
+def _lock_public_api() -> int:
+    """Postgres only: turn on row level security for every app table.
+
+    Supabase serves the `public` schema over a REST API that anyone holding the
+    browser (anon) key can call. Without RLS that API can read and write every
+    user's trades. With RLS on and no policies, the API returns nothing, while
+    this backend (which connects as the table owner) is unaffected. All access
+    control therefore stays in the FastAPI layer. Never raises.
+    """
+    if _engine_backend != "postgres":
+        return 0
+    try:
+        from sqlalchemy import text
+        names = [t.name for t in SQLModel.metadata.sorted_tables]
+        with get_engine().begin() as conn:
+            open_tables = {r[0] for r in conn.execute(text(
+                "select tablename from pg_tables "
+                "where schemaname = current_schema() and not rowsecurity"))}
+            todo = [n for n in names if n in open_tables]
+            for n in todo:
+                conn.execute(text(f'ALTER TABLE "{n}" ENABLE ROW LEVEL SECURITY'))
+        return len(todo)
+    except Exception:
+        return 0
 
 
 #: Columns added after a table first shipped. Applied with ALTER TABLE so an

@@ -92,3 +92,35 @@ frontend: `cd frontend && npm install && npm run dev` → http://localhost:3000 
   `unverified: ["SENSEX"]` (BSE blocks automated lookups; check the BSE circular by hand).
 - E2E on live data verified: idea check (HDFCBANK, `data_mode: live`, "recommend" appears only in the
   disclaimer) and strategy backtest (RELIANCE, live). Tests: 115 pass.
+
+## Session 3 log (2026-11-12)
+- Env files prepared: empty slots for every key in `backend/.env` and `frontend/.env.local`;
+  `CRON_SECRET` and `TOKEN_ENCRYPTION_KEY` generated into `backend/.env`.
+- Owner does NOT want to pay for an Anthropic key yet → added **Google Gemini** as a free AI
+  provider (`app/parakh/gemini.py`, plain httpx REST, key in header). `llm.provider()` picks
+  Claude if `ANTHROPIC_API_KEY` is set, else Gemini if `GEMINI_API_KEY`, else rules.
+  `/api/parakh/me` features now include `"ai": "claude"|"gemini"|null`. Tests: `tests/test_gemini.py`.
+- **Real services now connected and verified:** Supabase Auth (`auth_mode: "supabase"`), Supabase
+  Postgres (21 tables created), Gemini (`gemini-3.5-flash-lite`; `gemini-flash-latest` hung).
+  Real copilot call worked (live RELIANCE quote via tools). ANTHROPIC key deliberately empty.
+- Security fix: Supabase exposes `public` tables over REST to the anon key. `database._lock_public_api()`
+  now enables RLS on every table at startup (no policies; backend connects as owner). Verified 401.
+- `tests/conftest.py` now BLANKS service env vars (empty overrides `.env`); popping was not enough
+  once real keys were in `.env`. Tests: 120 pass.
+- **`STARTUP_PLAN.md`** written: startup assessment, problems/fixes, feature ranking, business model,
+  hackathon prep, phased order. Owner wants to go **slower and more carefully** now, aim for a real
+  startup, and use Parakh in hackathons. Next build step = Phase 1 of that file.
+- **Phase 1 started.** Built: Tradebook X-ray (`app/parakh/xray.py`: habit leaks in rupees; a leak
+  must lose money AND do worse per trade than the user's other trades; loss-only groups are
+  "loss_shape", never leaks; floors 20 trips / 5 per habit; never claims money "would be saved"),
+  deterministic sample tradebook (`app/parakh/sample.py`, labelled invented), no-login routes
+  `/api/parakh/public/{xray,check,sample-tradebook.csv}` (IP rate-limited, nothing stored),
+  public pages `/xray` and `/try` (route group `(public)`), X-ray on the Journal page.
+  Tests: 133 pass; `npm run build` passes. NOT yet clicked through in a browser.
+- Zerodha Kite: Personal plan is free (own account only); Connect is ₹500/month and needed for
+  other users. Decision: owner's own account for demos now, multi-user sync in Phase 3.
+- Owner dislikes the current UI. `UI_PROMPT.md` is a prompt for an external AI UI builder
+  (v0/Lovable); owner will generate a UI in parallel. Any new UI must keep the API contract.
+- Phase 1 still to do: deploy (Render + Vercel), demo account with seeded ideas for the
+  calibration chart, demo script/slides, backup video.
+- Still off: Kite, Telegram, Reddit, Redis (memory store). Not deployed.

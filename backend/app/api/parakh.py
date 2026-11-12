@@ -8,13 +8,15 @@ import json
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, File, Header, HTTPException, Query, Request, UploadFile
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
 from app.config import get_settings
 from app.core import state_store
 from app.core.auth import User, optional_user, require_user
-from app.parakh import (autopsy, brief, copilot, hype_radar, india_events, journal, kite, market,
-                        options, share, store, strategy_backtest, thesis_check, theses, universe)
+from app.parakh import (autopsy, brief, copilot, hype_radar, india_events, journal, kite, llm, market,
+                        options, sample, share, store, strategy_backtest, thesis_check, theses, universe,
+                        xray)
 
 router = APIRouter(prefix="/api/parakh", tags=["parakh"])
 
@@ -27,6 +29,24 @@ def limit(name: str, per_min: int):
     return dep
 
 
+def _client_ip(request: Request) -> str:
+    # Behind a proxy (Render) the last X-Forwarded-For hop is the one the proxy added.
+    fwd = request.headers.get("x-forwarded-for", "")
+    if fwd:
+        return fwd.split(",")[-1].strip()[:64]
+    return (request.client.host if request.client else "unknown")[:64]
+
+
+def public_limit(name: str, per_min: int, per_day: int):
+    """Rate limit for no-login routes, keyed by client address."""
+    def dep(request: Request) -> None:
+        ip = _client_ip(request)
+        if not (state_store.rate_hit(f"ip:{ip}:{name}:m", 60, per_min)
+                and state_store.rate_hit(f"ip:{ip}:{name}:d", 86400, per_day)):
+            raise HTTPException(status_code=429, detail="Free trial limit reached. Sign up (free) to keep going.")
+    return dep
+
+
 # ----------------------------------------------------------------- meta ----
 
 @router.get("/me")
@@ -34,7 +54,7 @@ def me(user: Optional[User] = Depends(optional_user)):
     s = get_settings()
     return {"user": user.__dict__ if user else None,
             "auth_mode": "supabase" if s.auth_configured else ("disabled" if s.is_production else "dev"),
-            "features": {"claude": bool(s.ANTHROPIC_API_KEY), "zerodha": kite.configured(),
+            "features": {"claude": bool(s.ANTHROPIC_API_KEY), "ai": llm.provider(), "zerodha": kite.configured(),
                          "telegram": bool(s.TELEGRAM_BOT_TOKEN), "reddit": bool(s.REDDIT_CLIENT_ID),
                          "state_store": state_store.backend()}}
 
@@ -71,8 +91,7 @@ class CheckRequest(BaseModel):
     save: bool = True
 
 
-@router.post("/check")
-def check(req: CheckRequest, user: User = Depends(limit("check", 15))):
+def _run_check(req: CheckRequest) -> Dict[str, Any]:
     idea, mode = (thesis_check.parse_idea(req.idea) if req.idea.strip() else (None, "fields"))
     if idea is None:
         if not req.symbol:
@@ -95,9 +114,26 @@ def check(req: CheckRequest, user: User = Depends(limit("check", 15))):
         raise HTTPException(status_code=422, detail=f"Couldn't analyse {idea.symbol}: {type(e).__name__}")
     report["parse_mode"] = mode
     report["related_events"] = india_events.events_for_symbol(idea.symbol)
+    report["_label"] = req.idea or f"{idea.symbol} {idea.direction}"
+    return report
+
+
+@router.post("/check")
+def check(req: CheckRequest, user: User = Depends(limit("check", 15))):
+    report = _run_check(req)
+    label = report.pop("_label")
     if req.save:
-        row = theses.create(user.id, report, req.idea or f"{idea.symbol} {idea.direction}")
+        row = theses.create(user.id, report, label)
         report["thesis_id"] = row.id
+    return report
+
+
+@router.post("/public/check", dependencies=[Depends(public_limit("check", 4, 25))])
+def public_check(req: CheckRequest):
+    """Try-before-signup idea check. Nothing is saved or tracked."""
+    report = _run_check(req)
+    report.pop("_label", None)
+    report["trial"] = True
     return report
 
 
@@ -162,6 +198,49 @@ async def journal_import(request: Request, file: Optional[UploadFile] = File(Non
     except journal.CsvError as e:
         raise HTTPException(status_code=422, detail=str(e))
     return {"format": fmt, **store.add_trades(user.id, trades)}
+
+
+async def _read_csv(request: Request, file: Optional[UploadFile]) -> str:
+    raw = await file.read(5_000_001) if file is not None else await request.body()
+    if len(raw) > 5_000_000:
+        raise HTTPException(status_code=413, detail="File too large (max 5 MB).")
+    return raw.decode("utf-8", errors="replace")
+
+
+def _xray_of(trades: List[Any], is_sample: bool = False) -> Dict[str, Any]:
+    trips = journal.round_trips(trades)
+    out = {"xray": xray.build(trips), "stats": journal.stats(trips), "trades": len(trades),
+           "sample": is_sample}
+    if is_sample:
+        out["sample_label"] = sample.LABEL
+    return out
+
+
+@router.get("/journal/xray")
+def journal_xray(user: User = Depends(require_user)):
+    """Where this user's losses cluster, from their imported trades."""
+    return _xray_of(store.list_trades(user.id))
+
+
+@router.get("/public/sample-tradebook.csv", response_class=PlainTextResponse)
+def sample_tradebook():
+    return PlainTextResponse(sample.tradebook_csv(), media_type="text/csv", headers={
+        "Content-Disposition": 'attachment; filename="parakh-sample-tradebook.csv"'})
+
+
+@router.post("/public/xray", dependencies=[Depends(public_limit("xray", 6, 40))])
+async def public_xray(request: Request, use_sample: bool = Query(False, alias="sample"),
+                      file: Optional[UploadFile] = File(None)):
+    """Try-before-signup X-ray. The file is analysed in memory and never stored."""
+    if use_sample:
+        text = sample.tradebook_csv()
+    else:
+        text = await _read_csv(request, file)
+    try:
+        trades, fmt = journal.parse_csv(text)
+    except journal.CsvError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return {"format": fmt, "stored": False, **_xray_of(trades, is_sample=use_sample)}
 
 
 @router.get("/journal")

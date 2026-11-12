@@ -85,7 +85,7 @@ def _fallback(user_id: str, question: str) -> Dict[str, Any]:
                            + (f"Red flags: {', '.join(fails)}. " if fails else "")
                            + "Open 'Check a trade' for the full report."), "mode": "rules"}
     return {"answer": ("I can check a trade idea ('Will HDFC Bank rally in 2 weeks?'), explain your journal "
-                       "stats, or your calibration. Add ANTHROPIC_API_KEY on the server for full conversations."),
+                       "stats, or your calibration. Add an AI key on the server for full conversations."),
             "mode": "rules"}
 
 
@@ -103,5 +103,5 @@ def ask(user_id: str, question: str, history: List[Dict[str, str]] | None = None
         msgs.append({"role": "user", "content": question})
         out = llm.run_tools(msgs, TOOLS, _executor(user_id))
         if out and out.get("answer"):
-            return {**out, "mode": "claude"}
+            return {**out, "mode": llm.provider() or "claude"}
     return _fallback(user_id, question)

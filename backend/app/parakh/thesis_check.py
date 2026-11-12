@@ -91,7 +91,7 @@ def _rule_parse(text: str) -> Optional[ParsedIdea]:
 
 
 def parse_idea(text: str) -> Tuple[Optional[ParsedIdea], str]:
-    """Claude first (if configured), rules as fallback. Returns (idea, mode)."""
+    """AI model first (if configured), rules as fallback. Returns (idea, mode)."""
     text = (text or "").strip()[:1000]
     if not text:
         return None, "none"
@@ -105,7 +105,7 @@ def parse_idea(text: str) -> Tuple[Optional[ParsedIdea], str]:
         idea.direction = "SHORT" if idea.direction.upper().startswith("S") else "LONG"
         idea.horizon_days = max(1, min(120, int(idea.horizon_days or 10)))
         idea.user_confidence = max(0.5, min(0.99, float(idea.user_confidence or 0.6)))
-        return idea, "claude"
+        return idea, (llm.provider() or "claude")
     idea = _rule_parse(text)
     return idea, ("rules" if idea else "none")
 
